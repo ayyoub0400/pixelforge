@@ -1,0 +1,9 @@
+# Runtime dependencies shared by the API and the worker.
+boto3
+pillow
+prometheus-client
+structlog
+pydantic
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-http

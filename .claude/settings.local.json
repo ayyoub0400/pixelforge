@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"C:/Users/ayoub/Documents/devops/pixelforge\" log --oneline -5)"
+    ]
+  }
+}

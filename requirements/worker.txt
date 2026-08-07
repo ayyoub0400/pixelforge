@@ -1,0 +1,80 @@
+# Fully pinned dependency closure for 'worker'.
+# Generated from worker.in - do not edit by hand. Regenerate with:
+#   make deps      (or: uv pip compile --universal --python-version 3.12 --no-header -o worker.txt worker.in)
+annotated-types==0.8.0
+    # via pydantic
+boto3==1.43.66
+    # via -r base.in
+botocore==1.43.66
+    # via
+    #   boto3
+    #   s3transfer
+certifi==2026.7.22
+    # via requests
+charset-normalizer==3.4.9
+    # via requests
+googleapis-common-protos==1.75.1
+    # via opentelemetry-exporter-otlp-proto-http
+idna==3.18
+    # via requests
+jmespath==1.1.0
+    # via
+    #   boto3
+    #   botocore
+opentelemetry-api==1.44.0
+    # via
+    #   -r base.in
+    #   opentelemetry-exporter-otlp-proto-http
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+opentelemetry-exporter-otlp-proto-common==1.44.0
+    # via opentelemetry-exporter-otlp-proto-http
+opentelemetry-exporter-otlp-proto-http==1.44.0
+    # via -r base.in
+opentelemetry-proto==1.44.0
+    # via
+    #   opentelemetry-exporter-otlp-proto-common
+    #   opentelemetry-exporter-otlp-proto-http
+opentelemetry-sdk==1.44.0
+    # via
+    #   -r base.in
+    #   opentelemetry-exporter-otlp-proto-http
+opentelemetry-semantic-conventions==0.65b0
+    # via opentelemetry-sdk
+pillow==12.3.0
+    # via -r base.in
+prometheus-client==0.26.0
+    # via -r base.in
+protobuf==7.35.1
+    # via
+    #   googleapis-common-protos
+    #   opentelemetry-proto
+pydantic==2.13.4
+    # via -r base.in
+pydantic-core==2.46.4
+    # via pydantic
+python-dateutil==2.9.0.post0
+    # via botocore
+requests==2.34.2
+    # via opentelemetry-exporter-otlp-proto-http
+s3transfer==0.19.2
+    # via boto3
+six==1.17.0
+    # via python-dateutil
+structlog==26.1.0
+    # via -r base.in
+typing-extensions==4.16.0
+    # via
+    #   opentelemetry-api
+    #   opentelemetry-exporter-otlp-proto-http
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+    #   pydantic
+    #   pydantic-core
+    #   typing-inspection
+typing-inspection==0.4.2
+    # via pydantic
+urllib3==2.7.0
+    # via
+    #   botocore
+    #   requests
