@@ -1,0 +1,2 @@
+This is not an image. It is uploaded with an image content type so the
+API has to decide on the bytes rather than the declared type.

@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+.venv/
+venv/
+env/
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Local overrides. The application never reads a .env file - docker-compose
+# does - but keep them out of history regardless.
+.env
+.env.*
+
+.idea/
+.vscode/
+.DS_Store

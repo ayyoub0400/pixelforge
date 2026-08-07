@@ -1,0 +1,40 @@
+# Keep the build context small and make sure nothing that could carry a
+# credential, a virtualenv or a test artifact reaches an image layer.
+
+.git
+.gitignore
+.github
+.venv
+venv
+env
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+.coverage.*
+htmlcov
+coverage.xml
+
+# Local-only tooling and docs: not needed to run either service.
+tests
+fixtures
+docs
+docker-compose.yml
+docker-compose.*.yml
+Makefile
+README.md
+*.md
+
+# Anything that might hold secrets. None of these are used by the application
+# - it reads configuration from the environment only - but excluding them means
+# a stray file cannot be baked into an image.
+.env
+.env.*
+*.pem
+*.key
+.aws
+.aws/**
+credentials

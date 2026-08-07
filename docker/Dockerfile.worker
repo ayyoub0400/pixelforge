@@ -1,0 +1,54 @@
+# syntax=docker/dockerfile:1
+#
+# pixelforge worker image.
+#
+# Build from the repository root:
+#   docker build -f docker/Dockerfile.worker -t pixelforge-worker:dev .
+#
+# The worker has no ingress port; 9090 is the Prometheus scrape endpoint. The
+# Python process is PID 1 in exec form so SIGTERM reaches the signal handler
+# that drains the in-flight job.
+
+FROM python:3.12-slim AS builder
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_ROOT_USER_ACTION=ignore
+
+WORKDIR /build
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY requirements/worker.txt ./requirements/worker.txt
+RUN pip install --no-cache-dir -r requirements/worker.txt
+
+
+FROM python:3.12-slim AS runtime
+
+LABEL org.opencontainers.image.title="pixelforge-worker" \
+      org.opencontainers.image.description="Asynchronous image processing worker" \
+      org.opencontainers.image.source="https://github.com/example/pixelforge" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONFAULTHANDLER=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    TMPDIR=/tmp
+
+RUN groupadd --gid 10001 pixelforge \
+ && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin pixelforge
+
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /app
+COPY shared/ ./shared/
+COPY worker/ ./worker/
+
+USER 10001:10001
+
+EXPOSE 9090
+STOPSIGNAL SIGTERM
+
+ENTRYPOINT ["python", "-m", "worker.main"]

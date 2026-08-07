@@ -1,0 +1,137 @@
+# Local development stack: API + worker + LocalStack (S3, SQS, DynamoDB).
+#
+#   make up      start everything
+#   make logs    follow api and worker
+#   make load    run the load generator against it
+#   make down    stop and remove volumes
+#
+# Everything runs offline. The only values hardcoded anywhere in this project
+# live in this file: the services themselves read configuration exclusively
+# from the environment, which is exactly what makes them deployable elsewhere
+# without a code change.
+
+name: pixelforge
+
+x-aws-env: &aws-env
+  # LocalStack ignores the values but boto3's credential chain requires *some*
+  # credentials to sign with. Nothing in the application reads these: they are
+  # consumed by boto3, which in a real cluster picks up an IRSA web identity
+  # token from this same chain instead.
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+  AWS_REGION: us-east-1
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_ENDPOINT_URL: http://localstack:4566
+
+x-pixelforge-env: &pixelforge-env
+  S3_BUCKET: pixelforge-local
+  SQS_QUEUE_URL: http://localstack:4566/000000000000/pixelforge-jobs
+  DYNAMODB_TABLE: pixelforge-jobs
+  LOG_LEVEL: INFO
+  SHUTDOWN_GRACE_SECONDS: "30"
+  MAX_UPLOAD_BYTES: "10485760"
+  THUMBNAIL_SIZES: 150,400,800
+
+services:
+  localstack:
+    image: localstack/localstack:3.8
+    container_name: pixelforge-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,sqs,dynamodb
+      DEBUG: "0"
+      EAGER_SERVICE_LOADING: "1"
+      LOCALSTACK_HOST: localstack:4566
+      PERSISTENCE: "0"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -sf http://localhost:4566/_localstack/health
+          | grep -q '"s3": "\(running\|available\)"'
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  # One-shot job that provisions the bucket, queue (+DLQ) and table. Running it
+  # as its own container rather than a LocalStack init hook means failures are
+  # visible and the app containers can gate on it with
+  # service_completed_successfully.
+  localstack-init:
+    image: localstack/localstack:3.8
+    container_name: pixelforge-localstack-init
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      <<: [*aws-env, *pixelforge-env]
+    entrypoint: ["/bin/bash", "/init/init-resources.sh"]
+    volumes:
+      - ./docker/localstack:/init:ro
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    image: pixelforge-api:dev
+    container_name: pixelforge-api
+    depends_on:
+      localstack-init:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    environment:
+      <<: [*aws-env, *pixelforge-env]
+      # On by default locally so the chaos demos work out of the box. This flag
+      # must stay false in any real environment.
+      ENABLE_CHAOS_ENDPOINT: "true"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).status == 200 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    # Long enough for uvicorn's graceful drain (SHUTDOWN_GRACE_SECONDS) to
+    # finish before Docker escalates to SIGKILL.
+    stop_grace_period: 40s
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    image: pixelforge-worker:dev
+    container_name: pixelforge-worker
+    depends_on:
+      localstack-init:
+        condition: service_completed_successfully
+    ports:
+      # Exposed only so a local Prometheus (or curl) can scrape it; the worker
+      # takes no ingress traffic.
+      - "9090:9090"
+    environment:
+      <<: [*aws-env, *pixelforge-env]
+    # SHUTDOWN_GRACE_SECONDS (30) plus the worst-case remainder of a 20s SQS
+    # long poll. The same arithmetic applies to terminationGracePeriodSeconds
+    # in Kubernetes.
+    stop_grace_period: 55s
+
+  # Not started by `make up`: run it on demand with `make load` or
+  # `docker compose --profile tools run --rm loadgen --rate 20 --duration 30`.
+  loadgen:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.loadgen
+    image: pixelforge-loadgen:dev
+    profiles: ["tools"]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      PIXELFORGE_BASE_URL: http://api:8000

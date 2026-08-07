@@ -1,0 +1,46 @@
+# Tooling configuration only. Dependencies live in requirements/ as fully
+# pinned closures so that the container images are byte-for-byte reproducible.
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+# The services are run as top-level packages (python -m api.main), not as an
+# installed distribution, so the repository root has to be importable.
+pythonpath = ["."]
+addopts = "-q --strict-markers --strict-config"
+filterwarnings = [
+    "error::DeprecationWarning:pixelforge.*",
+]
+markers = [
+    "slow: tests that take more than a second",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["api", "worker", "shared"]
+omit = ["*/__main__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
+ignore = ["B008"]  # FastAPI's Depends()/File() defaults are the documented idiom.
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+ignore_missing_imports = true

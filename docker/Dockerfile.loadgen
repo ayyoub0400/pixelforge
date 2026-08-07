@@ -1,0 +1,39 @@
+# syntax=docker/dockerfile:1
+#
+# Load generator image, so `make load` works with nothing installed but Docker.
+# Not part of the deployed system - it is a development tool that happens to be
+# containerised for convenience.
+
+FROM python:3.12-slim AS builder
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_ROOT_USER_ACTION=ignore
+
+WORKDIR /build
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY requirements/loadgen.txt ./requirements/loadgen.txt
+RUN pip install --no-cache-dir -r requirements/loadgen.txt
+
+
+FROM python:3.12-slim AS runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    TMPDIR=/tmp
+
+RUN groupadd --gid 10001 pixelforge \
+ && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin pixelforge
+
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /app
+COPY loadgen/ ./loadgen/
+
+USER 10001:10001
+STOPSIGNAL SIGTERM
+
+ENTRYPOINT ["python", "-m", "loadgen.generate"]
