@@ -24,10 +24,11 @@ from shared.aws import AwsClients, wait_for_dependencies
 from shared.config import Config, load_config
 from shared.errors import ConfigError, TransientDependencyError
 from shared.logging_setup import configure_logging
+from shared.metrics import WORKER_REGISTRY
 from shared.tracing import configure_tracing
 from worker.consumer import SERVICE_NAME, Worker
 
-__all__ = ["run", "main", "install_signal_handlers", "METRICS_PORT"]
+__all__ = ["METRICS_PORT", "install_signal_handlers", "main", "run"]
 
 _LOG = structlog.get_logger(__name__)
 
@@ -92,7 +93,9 @@ def run() -> int:
     configure_tracing(SERVICE_NAME, config.otel_exporter_otlp_endpoint)
 
     _LOG.info("service_starting", metrics_port=METRICS_PORT, **config.redacted())
-    start_http_server(METRICS_PORT)
+    # Served before the dependency wait so a worker stuck waiting for AWS is
+    # still visible to Prometheus rather than looking like a dead target.
+    start_http_server(METRICS_PORT, registry=WORKER_REGISTRY)
 
     try:
         worker = build_worker(config)

@@ -25,7 +25,7 @@ from shared.models import JobMessage, JobRecord, JobStatus
 from shared.timeutil import utc_now_iso
 from shared.tracing import current_span_ids, inject_trace_context
 
-__all__ = ["JobService", "UploadRejected", "EnqueueFailed", "sanitise_filename"]
+__all__ = ["EnqueueFailedError", "JobService", "UploadRejectedError", "sanitise_filename"]
 
 _LOG = structlog.get_logger(__name__)
 
@@ -38,7 +38,7 @@ _UUID_PATTERN: Final[re.Pattern[str]] = re.compile(
 )
 
 
-class UploadRejected(Exception):
+class UploadRejectedError(Exception):
     """The client sent something we will not accept.
 
     Carries everything the HTTP layer needs to answer, so the routes contain no
@@ -56,7 +56,7 @@ class UploadRejected(Exception):
         return self.detail
 
 
-class EnqueueFailed(Exception):
+class EnqueueFailedError(Exception):
     """The job was stored but could not be queued for processing."""
 
 
@@ -94,10 +94,10 @@ class JobService:
             size_bytes: Number of bytes received.
 
         Raises:
-            UploadRejected: The type is unsupported or the payload is too large.
+            UploadRejectedError: The type is unsupported or the payload is too large.
         """
         if size_bytes > self._config.max_upload_bytes:
-            raise UploadRejected(
+            raise UploadRejectedError(
                 detail=(
                     f"file exceeds the {self._config.max_upload_bytes} byte limit "
                     f"({size_bytes} bytes received)"
@@ -108,7 +108,7 @@ class JobService:
             )
         normalised = (content_type or "").split(";")[0].strip().lower()
         if normalised not in ALLOWED_CONTENT_TYPES:
-            raise UploadRejected(
+            raise UploadRejectedError(
                 detail=(
                     f"unsupported content type {normalised or 'unknown'!r}; "
                     f"expected one of {sorted(ALLOWED_CONTENT_TYPES)}"
@@ -137,8 +137,8 @@ class JobService:
             The persisted :class:`~shared.models.JobRecord` in ``PENDING``.
 
         Raises:
-            UploadRejected: The upload failed validation.
-            EnqueueFailed: The record was written but SQS would not accept it.
+            UploadRejectedError: The upload failed validation.
+            EnqueueFailedError: The record was written but SQS would not accept it.
             TransientDependencyError: S3 or DynamoDB were unreachable.
         """
         size_bytes = len(data)
@@ -147,7 +147,7 @@ class JobService:
         try:
             probe = probe_image(data)
         except ImageProcessingError as exc:
-            raise UploadRejected(
+            raise UploadRejectedError(
                 detail=str(exc),
                 status_code=400,
                 code="invalid_image",
@@ -195,7 +195,7 @@ class JobService:
             # job up. Mark it FAILED so a poller gets a definitive answer
             # instead of a job stuck in PENDING forever.
             self._mark_unqueueable(record, exc)
-            raise EnqueueFailed(str(exc)) from exc
+            raise EnqueueFailedError(str(exc)) from exc
 
         UPLOADS_TOTAL.labels(result=UploadResult.ACCEPTED).inc()
         UPLOAD_SIZE_BYTES.observe(size_bytes)

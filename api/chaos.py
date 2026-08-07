@@ -16,13 +16,19 @@ why only some requests are slow.
 
 from __future__ import annotations
 
+import asyncio
 import random
 import threading
-from typing import Callable
+from collections.abc import Callable
+
+import structlog
+from starlette.requests import Request
 
 from shared.models import ChaosRequest, ChaosState
 
-__all__ = ["ChaosController"]
+__all__ = ["ChaosController", "ChaosInjectedError", "apply_chaos"]
+
+_LOG = structlog.get_logger(__name__)
 
 
 class ChaosController:
@@ -82,3 +88,32 @@ class ChaosController:
         if rate >= 1.0:
             return True
         return self._rng() < rate
+
+
+class ChaosInjectedError(Exception):
+    """Raised to fail a request on purpose. Handled as a ``500``."""
+
+
+async def apply_chaos(request: Request) -> None:
+    """Router dependency that applies the configured latency and error rate.
+
+    Attached to the ``/api/v1`` router rather than installed as middleware for
+    two reasons: it applies to exactly the job API (health, readiness and
+    metrics stay honest while chaos is switched on), and because the request
+    has already been routed, the resulting ``500`` is attributed to the right
+    endpoint in ``pixelforge_http_requests_total`` instead of collapsing into
+    the ``unmatched`` series. Making the dashboards move correctly is the whole
+    point of the feature.
+
+    Raises:
+        ChaosInjectedError: The configured error rate fired for this request.
+    """
+    controller: ChaosController = request.app.state.chaos
+
+    latency = controller.latency_seconds
+    if latency > 0:
+        await asyncio.sleep(latency)
+
+    if controller.should_fail_request():
+        _LOG.warning("chaos_injected_error", path=request.url.path)
+        raise ChaosInjectedError("injected failure")

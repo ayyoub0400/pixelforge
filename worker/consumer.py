@@ -17,9 +17,10 @@ from __future__ import annotations
 
 import contextlib
 import time
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Final, Iterator, Mapping
+from enum import StrEnum
+from typing import Any, Final
 
 import structlog
 from botocore.exceptions import BotoCoreError, ClientError
@@ -46,7 +47,7 @@ from worker.heartbeat import (
     VisibilityHeartbeat,
 )
 
-__all__ = ["Worker", "Outcome", "SERVICE_NAME"]
+__all__ = ["SERVICE_NAME", "Outcome", "Worker"]
 
 _LOG = structlog.get_logger(__name__)
 
@@ -63,7 +64,7 @@ RECEIVE_BACKOFF_SECONDS: Final[float] = 2.0
 _THUMBNAIL_CONTENT_TYPE: Final[str] = "image/jpeg"
 
 
-class Outcome(str, Enum):
+class Outcome(StrEnum):
     """What happened to a single message. Returned to make tests explicit."""
 
     COMPLETED = "completed"
@@ -226,9 +227,7 @@ class Worker:
         finally:
             clear_job_context()
 
-    def _process(
-        self, job: JobMessage, receipt_handle: str, message: Mapping[str, Any]
-    ) -> Outcome:
+    def _process(self, job: JobMessage, receipt_handle: str, message: Mapping[str, Any]) -> Outcome:
         """Run the pipeline for one job."""
         receive_count = _receive_count(message)
 
@@ -358,9 +357,7 @@ class Worker:
                 outputs: dict[str, ThumbnailOutput] = {}
                 for thumbnail in thumbnails:
                     key = f"outputs/{job.job_id}/thumb_{thumbnail.size}.jpg"
-                    self._clients.store.put_bytes(
-                        key, thumbnail.data, _THUMBNAIL_CONTENT_TYPE
-                    )
+                    self._clients.store.put_bytes(key, thumbnail.data, _THUMBNAIL_CONTENT_TYPE)
                     outputs[str(thumbnail.size)] = ThumbnailOutput(
                         size=thumbnail.size,
                         key=key,

@@ -35,12 +35,14 @@ import urllib.error
 import urllib.request
 import uuid
 from collections import Counter
+from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Final, Sequence
+from typing import Final
 
 from PIL import Image
 
-__all__ = ["main", "Results", "run_load"]
+__all__ = ["Results", "main", "run_load"]
 
 DEFAULT_BASE_URL: Final[str] = "http://localhost:8000"
 
@@ -89,7 +91,7 @@ def _percentiles(samples: Sequence[float]) -> dict[str, float]:
     ordered = sorted(samples)
     result: dict[str, float] = {}
     for percentile in _PERCENTILES:
-        index = min(len(ordered) - 1, int(round((percentile / 100.0) * len(ordered))) - 1)
+        index = min(len(ordered) - 1, round((percentile / 100.0) * len(ordered)) - 1)
         result[f"p{percentile}"] = round(ordered[max(index, 0)] * 1000, 2)
     return result
 
@@ -139,7 +141,9 @@ def _multipart(payload: bytes, filename: str) -> tuple[bytes, str]:
     return head + payload + tail, f"multipart/form-data; boundary={boundary}"
 
 
-def _post_upload(base_url: str, payload: bytes, filename: str, timeout: float) -> tuple[str, str | None]:
+def _post_upload(
+    base_url: str, payload: bytes, filename: str, timeout: float
+) -> tuple[str, str | None]:
     """Upload one image.
 
     Returns:
@@ -187,11 +191,12 @@ def _poll_job(base_url: str, job_id: str, timeout: float, deadline: float) -> st
 
 
 def _worker(
-    task_queue: "queue.Queue[float | None]",
+    task_queue: queue.Queue[float | None],
     args: argparse.Namespace,
     payloads: Sequence[bytes],
     results: Results,
     origin: float,
+    pollers: ThreadPoolExecutor | None,
 ) -> None:
     """Consume scheduled send times and issue the requests."""
     while True:
@@ -219,30 +224,33 @@ def _worker(
                 results.status_counts[status] += 1
                 results.upload_latencies.append(upload_seconds)
 
-            if args.poll and job_id:
-                final = _poll_job(
-                    args.base_url,
-                    job_id,
-                    args.timeout,
-                    time.monotonic() + args.poll_timeout,
-                )
-                with results.lock:
-                    results.terminal_counts[final] += 1
-                    if final in _TERMINAL_STATUSES:
-                        results.completion_latencies.append(time.monotonic() - started)
+            if pollers is not None and job_id:
+                # Polling runs on its own pool: following a job to completion
+                # must not delay the next scheduled upload, or the offered rate
+                # silently collapses to the rate the workers can drain.
+                pollers.submit(_follow_job, args, results, job_id, started)
         finally:
             task_queue.task_done()
 
 
+def _follow_job(args: argparse.Namespace, results: Results, job_id: str, started: float) -> None:
+    """Poll one job to a terminal state and record how long it took."""
+    final = _poll_job(args.base_url, job_id, args.timeout, time.monotonic() + args.poll_timeout)
+    with results.lock:
+        results.terminal_counts[final] += 1
+        if final in _TERMINAL_STATUSES:
+            results.completion_latencies.append(time.monotonic() - started)
+
+
 def run_load(args: argparse.Namespace) -> Results:
     """Execute a load run and return its measurements."""
-    total = max(1, int(round(args.rate * args.duration)))
+    total = max(1, round(args.rate * args.duration))
     payloads = [
         make_image(args.width, args.height, seed=index) for index in range(args.distinct_images)
     ]
 
     results = Results()
-    task_queue: "queue.Queue[float | None]" = queue.Queue()
+    task_queue: queue.Queue[float | None] = queue.Queue()
     for index in range(total):
         task_queue.put(index / args.rate)
     for _ in range(args.concurrency):
@@ -254,12 +262,17 @@ def run_load(args: argparse.Namespace) -> Results:
         file=sys.stderr,
     )
 
+    pollers = (
+        ThreadPoolExecutor(max_workers=max(args.concurrency, 16), thread_name_prefix="poll")
+        if args.poll
+        else None
+    )
     origin = time.monotonic()
     results.started_at = origin
     threads = [
         threading.Thread(
             target=_worker,
-            args=(task_queue, args, payloads, results, origin),
+            args=(task_queue, args, payloads, results, origin, pollers),
             name=f"loadgen-{index}",
             daemon=True,
         )
@@ -269,7 +282,13 @@ def run_load(args: argparse.Namespace) -> Results:
         thread.start()
     for thread in threads:
         thread.join()
+    # Throughput is measured over the upload phase only; waiting for the tail
+    # of the queue to drain afterwards would understate it.
     results.finished_at = time.monotonic()
+
+    if pollers is not None:
+        print("→ waiting for submitted jobs to finish…", file=sys.stderr)
+        pollers.shutdown(wait=True)
     return results
 
 
@@ -281,7 +300,7 @@ def report(results: Results, args: argparse.Namespace) -> None:
         "pixelforge load report",
         "──────────────────────",
         f"target            {args.base_url}",
-        f"duration          {results.wall_seconds:.1f}s",
+        f"upload phase      {results.wall_seconds:.1f}s",
         f"requests          {results.total_requests}",
         f"accepted (202)    {results.accepted}",
         f"throughput        {results.accepted / results.wall_seconds:.1f} accepted/s",

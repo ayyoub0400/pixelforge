@@ -13,12 +13,13 @@ fail its readiness gate loudly rather than serve wrong behaviour quietly.
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Final, Mapping
+from typing import Final
 
 from shared.errors import ConfigError
 
-__all__ = ["Config", "ConfigError", "load_config", "REQUIRED_VARS", "OPTIONAL_VARS"]
+__all__ = ["OPTIONAL_VARS", "REQUIRED_VARS", "Config", "ConfigError", "load_config"]
 
 #: Variables that must be present and non-empty for any process to start.
 REQUIRED_VARS: Final[tuple[str, ...]] = (
@@ -112,9 +113,7 @@ def load_config(env: Mapping[str, str] | None = None) -> Config:
 
     missing = [name for name in REQUIRED_VARS if not _get(source, name)]
     if missing:
-        raise ConfigError(
-            "missing required environment variable(s): " + ", ".join(sorted(missing))
-        )
+        raise ConfigError("missing required environment variable(s): " + ", ".join(sorted(missing)))
 
     return Config(
         aws_region=_require(source, "AWS_REGION"),
@@ -151,9 +150,7 @@ def _log_level(source: Mapping[str, str]) -> str:
     raw = _get(source, "LOG_LEVEL") or "INFO"
     level = raw.upper()
     if level not in _VALID_LOG_LEVELS:
-        raise ConfigError(
-            f"LOG_LEVEL must be one of {sorted(_VALID_LOG_LEVELS)}, got {raw!r}"
-        )
+        raise ConfigError(f"LOG_LEVEL must be one of {sorted(_VALID_LOG_LEVELS)}, got {raw!r}")
     return level
 
 
@@ -179,9 +176,7 @@ def _bool(source: Mapping[str, str], name: str, *, default: bool) -> bool:
         return True
     if normalised in _FALSE_VALUES:
         return False
-    raise ConfigError(
-        f"{name} must be a boolean (true/false/1/0/yes/no/on/off), got {raw!r}"
-    )
+    raise ConfigError(f"{name} must be a boolean (true/false/1/0/yes/no/on/off), got {raw!r}")
 
 
 def _thumbnail_sizes(source: Mapping[str, str]) -> tuple[int, ...]:

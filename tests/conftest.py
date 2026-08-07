@@ -10,17 +10,17 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 import boto3
 import pytest
 from moto import mock_aws
-from prometheus_client import REGISTRY
 
 from api.chaos import ChaosController
 from api.main import create_app
-from shared.aws import AwsClients, JobQueue, JobTable, S3Store
+from shared.aws import AwsClients
 from shared.config import Config
 from worker.consumer import Worker
 
@@ -94,16 +94,14 @@ def aws_resources(aws: None) -> dict[str, str]:
 
     sqs = boto3.client("sqs", region_name=TEST_REGION)
     dlq_url = sqs.create_queue(QueueName=TEST_DLQ_NAME)["QueueUrl"]
-    dlq_arn = sqs.get_queue_attributes(QueueUrl=dlq_url, AttributeNames=["QueueArn"])[
-        "Attributes"
-    ]["QueueArn"]
+    dlq_arn = sqs.get_queue_attributes(QueueUrl=dlq_url, AttributeNames=["QueueArn"])["Attributes"][
+        "QueueArn"
+    ]
     queue_url = sqs.create_queue(
         QueueName=TEST_QUEUE_NAME,
         Attributes={
             "VisibilityTimeout": "60",
-            "RedrivePolicy": json.dumps(
-                {"deadLetterTargetArn": dlq_arn, "maxReceiveCount": "3"}
-            ),
+            "RedrivePolicy": json.dumps({"deadLetterTargetArn": dlq_arn, "maxReceiveCount": "3"}),
         },
     )["QueueUrl"]
 
@@ -235,20 +233,24 @@ def _config_kwargs(config: Config) -> dict[str, Any]:
 
 
 def metric_value(name: str, labels: dict[str, str] | None = None) -> float:
-    """Read one sample out of the default Prometheus registry.
+    """Read one sample from whichever registry owns the metric.
 
     Metrics are process-global, so tests compare a before/after delta rather
     than an absolute value.
     """
-    return REGISTRY.get_sample_value(name, labels or {}) or 0.0
+    from shared.metrics import API_REGISTRY, WORKER_REGISTRY
+
+    for registry in (API_REGISTRY, WORKER_REGISTRY):
+        sample = registry.get_sample_value(name, labels or {})
+        if sample is not None:
+            return float(sample)
+    return 0.0
 
 
 def upload_fixture(client: Any, name: str, *, content_type: str = "image/jpeg") -> Any:
     """POST a fixture file to the jobs endpoint."""
     payload = (FIXTURES_DIR / name).read_bytes()
-    return client.post(
-        "/api/v1/jobs", files={"file": (name, payload, content_type)}
-    )
+    return client.post("/api/v1/jobs", files={"file": (name, payload, content_type)})
 
 
 def receive_one(clients: AwsClients) -> dict[str, Any]:

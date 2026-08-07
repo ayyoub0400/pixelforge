@@ -20,16 +20,17 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import Any, Final, Iterator, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any, Final
 
 import structlog
 from structlog.types import EventDict, WrappedLogger
 
 __all__ = [
-    "configure_logging",
-    "get_logger",
     "bind_job_context",
     "clear_job_context",
+    "configure_logging",
+    "get_logger",
     "redact_exif",
 ]
 
@@ -110,9 +111,7 @@ def _scrub_value(value: Any, depth: int = 0) -> Any:
     return value
 
 
-def _redaction_processor(
-    _logger: WrappedLogger, _name: str, event_dict: EventDict
-) -> EventDict:
+def _redaction_processor(_logger: WrappedLogger, _name: str, event_dict: EventDict) -> EventDict:
     """structlog processor enforcing the redaction rules."""
     for key in list(event_dict.keys()):
         if _is_gps_key(key) and key != "event":
@@ -128,18 +127,14 @@ def _redaction_processor(
 def _service_processor(service: str):
     """Build a processor that stamps every line with the service name."""
 
-    def processor(
-        _logger: WrappedLogger, _name: str, event_dict: EventDict
-    ) -> EventDict:
+    def processor(_logger: WrappedLogger, _name: str, event_dict: EventDict) -> EventDict:
         event_dict.setdefault("service", service)
         return event_dict
 
     return processor
 
 
-def _trace_processor(
-    _logger: WrappedLogger, _name: str, event_dict: EventDict
-) -> EventDict:
+def _trace_processor(_logger: WrappedLogger, _name: str, event_dict: EventDict) -> EventDict:
     """Attach the active OpenTelemetry trace id when there is one."""
     from shared.tracing import current_span_ids  # local import: avoids a cycle
 
@@ -151,9 +146,7 @@ def _trace_processor(
     return event_dict
 
 
-def _rename_message(
-    _logger: WrappedLogger, _name: str, event_dict: EventDict
-) -> EventDict:
+def _rename_message(_logger: WrappedLogger, _name: str, event_dict: EventDict) -> EventDict:
     """Expose the log message under the conventional ``message`` key.
 
     structlog calls it ``event``; both are emitted so that greps written
@@ -249,23 +242,3 @@ def bind_job_context(*, job_id: str | None = None, **extra: Any) -> None:
 def clear_job_context() -> None:
     """Drop everything bound by :func:`bind_job_context`."""
     structlog.contextvars.clear_contextvars()
-
-
-class job_context:
-    """Context manager binding ``job_id`` for the duration of a block."""
-
-    def __init__(self, job_id: str, **extra: Any) -> None:
-        self._job_id = job_id
-        self._extra = extra
-
-    def __enter__(self) -> "job_context":
-        bind_job_context(job_id=self._job_id, **self._extra)
-        return self
-
-    def __exit__(self, *_exc: object) -> None:
-        clear_job_context()
-
-
-def iter_secret_markers() -> Iterator[str]:
-    """Expose the redaction markers so tests can assert on them."""
-    yield from _SECRET_KEY_MARKERS

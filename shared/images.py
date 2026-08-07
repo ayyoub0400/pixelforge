@@ -17,9 +17,10 @@ so callers can treat "bad input" uniformly and never see a raw Pillow error.
 from __future__ import annotations
 
 import io
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Final, Sequence
+from typing import Any, Final
 
 from PIL import ExifTags, Image, ImageFile, ImageOps, UnidentifiedImageError
 
@@ -27,13 +28,13 @@ from shared.errors import ImageProcessingError
 
 __all__ = [
     "ALLOWED_CONTENT_TYPES",
+    "MAX_PIXELS",
     "ImageProbe",
     "RenderedThumbnail",
-    "probe_image",
-    "extract_exif",
-    "render_thumbnails",
     "extension_for_format",
-    "MAX_PIXELS",
+    "extract_exif",
+    "probe_image",
+    "render_thumbnails",
 ]
 
 #: Content types the API accepts on upload. Anything else is a ``415``.
@@ -276,9 +277,7 @@ def render_thumbnails(
             oriented = ImageOps.exif_transpose(opened) or opened
             source_width, source_height = oriented.size
             renderable = _to_rgb(oriented)
-            thumbnails = [
-                _render_one(renderable, size) for size in sorted(set(sizes))
-            ]
+            thumbnails = [_render_one(renderable, size) for size in sorted(set(sizes))]
     except ImageProcessingError:
         raise
     except UnidentifiedImageError as exc:
@@ -299,9 +298,7 @@ def _to_rgb(image: Image.Image) -> Image.Image:
     """
     if image.mode == "RGB":
         return image
-    if image.mode in ("RGBA", "LA", "PA") or (
-        image.mode == "P" and "transparency" in image.info
-    ):
+    if image.mode in ("RGBA", "LA", "PA") or (image.mode == "P" and "transparency" in image.info):
         converted = image.convert("RGBA")
         background = Image.new("RGBA", converted.size, (255, 255, 255, 255))
         return Image.alpha_composite(background, converted).convert("RGB")

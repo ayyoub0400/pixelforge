@@ -87,9 +87,7 @@ def write_portrait() -> Path:
     # Punch a fully transparent block so alpha compositing has to do something.
     overlay = Image.new("RGBA", (300, 300), (0, 0, 0, 0))
     image.paste(overlay, (0, 0), overlay)
-    image.putalpha(
-        Image.linear_gradient("L").resize((800, 1200), Image.Resampling.BILINEAR)
-    )
+    image.putalpha(Image.linear_gradient("L").resize((800, 1200), Image.Resampling.BILINEAR))
     image.save(path, format="PNG", optimize=True)
     return path
 
