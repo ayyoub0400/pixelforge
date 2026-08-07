@@ -16,17 +16,16 @@ from __future__ import annotations
 
 import random
 import time
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Callable, Final, Iterable, TypeVar
+from typing import Final
 
 import structlog
 from botocore.exceptions import BotoCoreError, ClientError
 
 from shared.errors import TransientDependencyError
 
-__all__ = ["RetryPolicy", "DEFAULT_POLICY", "STARTUP_POLICY", "call_with_retry", "is_transient"]
-
-T = TypeVar("T")
+__all__ = ["DEFAULT_POLICY", "STARTUP_POLICY", "RetryPolicy", "call_with_retry", "is_transient"]
 
 _LOG = structlog.get_logger(__name__)
 
@@ -108,16 +107,14 @@ def is_transient(exc: BaseException) -> bool:
     if isinstance(exc, ClientError):
         error = exc.response.get("Error", {})
         code = str(error.get("Code", ""))
-        status = int(
-            exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0) or 0
-        )
+        status = int(exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0) or 0)
         return code in TRANSIENT_ERROR_CODES or status >= 500 or status == 429
     if isinstance(exc, BotoCoreError):
         return type(exc).__name__ in _TRANSIENT_BOTOCORE_ERRORS
     return False
 
 
-def call_with_retry(
+def call_with_retry[T](
     func: Callable[..., T],
     *args: object,
     operation: str,

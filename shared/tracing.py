@@ -14,17 +14,18 @@ development.
 from __future__ import annotations
 
 import contextlib
-from typing import Any, Final, Iterator, Mapping
+from collections.abc import Iterator, Mapping
+from typing import Any, Final
 
 __all__ = [
-    "configure_tracing",
-    "get_tracer",
-    "inject_trace_context",
-    "extract_trace_context",
-    "current_span_ids",
-    "span",
     "TRACEPARENT_HEADER",
     "TRACESTATE_HEADER",
+    "configure_tracing",
+    "current_span_ids",
+    "extract_trace_context",
+    "get_tracer",
+    "inject_trace_context",
+    "span",
 ]
 
 TRACEPARENT_HEADER: Final[str] = "traceparent"
@@ -95,7 +96,9 @@ def get_tracer(name: str) -> Any:
 
 
 @contextlib.contextmanager
-def span(name: str, *, context: Any = None, attributes: Mapping[str, Any] | None = None) -> Iterator[Any]:
+def span(
+    name: str, *, context: Any = None, attributes: Mapping[str, Any] | None = None
+) -> Iterator[Any]:
     """Start a span, tolerating a completely unconfigured OpenTelemetry stack.
 
     Args:
@@ -160,16 +163,16 @@ def current_span_ids() -> tuple[str | None, str | None]:
 class _NoopSpan:
     """Minimal stand-in implementing the slice of the span API we use."""
 
-    def set_attribute(self, key: str, value: Any) -> None:  # noqa: D102
+    def set_attribute(self, key: str, value: Any) -> None:
         return None
 
-    def set_status(self, *args: Any, **kwargs: Any) -> None:  # noqa: D102
+    def set_status(self, *args: Any, **kwargs: Any) -> None:
         return None
 
-    def record_exception(self, *args: Any, **kwargs: Any) -> None:  # noqa: D102
+    def record_exception(self, *args: Any, **kwargs: Any) -> None:
         return None
 
-    def __enter__(self) -> "_NoopSpan":
+    def __enter__(self) -> _NoopSpan:
         return self
 
     def __exit__(self, *_exc: object) -> None:
@@ -179,5 +182,5 @@ class _NoopSpan:
 class _NoopTracer:
     """Tracer returned when OpenTelemetry is not importable."""
 
-    def start_as_current_span(self, *_args: Any, **_kwargs: Any) -> _NoopSpan:  # noqa: D102
+    def start_as_current_span(self, *_args: Any, **_kwargs: Any) -> _NoopSpan:
         return _NoopSpan()

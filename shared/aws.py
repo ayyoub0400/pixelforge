@@ -15,14 +15,15 @@ credentials file or accepts an access key as configuration.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, Sequence
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Final, Iterable, Mapping, Sequence
+from typing import Any, Final
 
 import boto3
 import structlog
 from botocore.config import Config as BotoConfig
-from botocore.exceptions import BotoCoreError, ClientError
+from botocore.exceptions import ClientError
 
 from shared.config import Config
 from shared.metrics import SQS_ERRORS_TOTAL
@@ -31,14 +32,14 @@ from shared.retry import DEFAULT_POLICY, RetryPolicy, call_with_retry
 from shared.timeutil import utc_now_iso
 
 __all__ = [
-    "build_client",
-    "build_dynamodb_resource",
-    "S3Store",
+    "READINESS_SENTINEL_JOB_ID",
+    "AwsClients",
     "JobQueue",
     "JobTable",
-    "AwsClients",
     "ReadinessProbe",
-    "READINESS_SENTINEL_JOB_ID",
+    "S3Store",
+    "build_client",
+    "build_dynamodb_resource",
 ]
 
 _LOG = structlog.get_logger(__name__)
@@ -237,7 +238,9 @@ class S3Store:
 class JobQueue:
     """SQS operations for the job queue, with error metrics attached."""
 
-    def __init__(self, client: Any, queue_url: str, *, policy: RetryPolicy = DEFAULT_POLICY) -> None:
+    def __init__(
+        self, client: Any, queue_url: str, *, policy: RetryPolicy = DEFAULT_POLICY
+    ) -> None:
         self._client = client
         self._queue_url = queue_url
         self._policy = policy
@@ -461,9 +464,7 @@ class JobTable:
         than a lost job.
         """
         now = utc_now_iso()
-        serialised_outputs = {
-            key: value.model_dump(mode="json") for key, value in outputs.items()
-        }
+        serialised_outputs = {key: value.model_dump(mode="json") for key, value in outputs.items()}
         call_with_retry(
             self._table.update_item,
             operation="dynamodb.update_item",
@@ -543,7 +544,7 @@ class AwsClients:
         self.table = table
 
     @classmethod
-    def build(cls, config: Config) -> "AwsClients":
+    def build(cls, config: Config) -> AwsClients:
         """Construct every wrapper from process configuration."""
         store = S3Store(build_client("s3", config), config.s3_bucket)
         queue = JobQueue(

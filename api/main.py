@@ -9,8 +9,9 @@ new connections being accepted and drains in-flight requests for up to
 from __future__ import annotations
 
 import sys
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Final
+from typing import Final
 
 import structlog
 import uvicorn
@@ -18,17 +19,18 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from api.chaos import ChaosController
-from api.middleware import ChaosMiddleware, ObservabilityMiddleware
+from api.chaos import ChaosController, ChaosInjectedError
+from api.middleware import ObservabilityMiddleware
 from api.routes import admin_router, health_router, jobs_router
-from api.service import EnqueueFailed, JobService, UploadRejected
+from api.service import EnqueueFailedError, JobService, UploadRejectedError
 from shared.aws import AwsClients, ReadinessProbe
 from shared.config import Config, load_config
 from shared.errors import ConfigError, TransientDependencyError
 from shared.logging_setup import configure_logging
+from shared.metrics import UPLOADS_TOTAL
 from shared.tracing import configure_tracing
 
-__all__ = ["create_app", "run", "main"]
+__all__ = ["create_app", "main", "run"]
 
 _LOG = structlog.get_logger(__name__)
 
@@ -36,7 +38,7 @@ _LOG = structlog.get_logger(__name__)
 #: therefore not configurable. Bind on all interfaces because the process is
 #: alone in its network namespace.
 API_PORT: Final[int] = 8000
-API_HOST: Final[str] = "0.0.0.0"  # noqa: S104 - container-local binding
+API_HOST: Final[str] = "0.0.0.0"
 
 SERVICE_NAME: Final[str] = "api"
 
@@ -107,10 +109,7 @@ def create_app(
 
     _register_exception_handlers(app)
 
-    # Added innermost-first: chaos runs inside observability so injected
-    # failures show up in the metrics and access logs like any other response.
-    app.add_middleware(ChaosMiddleware, controller=resolved_chaos)
-    app.add_middleware(ObservabilityMiddleware, fastapi_app=app)
+    app.add_middleware(ObservabilityMiddleware)
 
     return app
 
@@ -118,15 +117,19 @@ def create_app(
 def _register_exception_handlers(app: FastAPI) -> None:
     """Map domain exceptions onto the uniform ``{detail, code}`` error body."""
 
-    @app.exception_handler(UploadRejected)
-    async def _handle_upload_rejected(_request: Request, exc: UploadRejected) -> JSONResponse:
+    @app.exception_handler(UploadRejectedError)
+    async def _handle_upload_rejected(_request: Request, exc: UploadRejectedError) -> JSONResponse:
+        # Counted here so that a rejection raised anywhere on the upload path -
+        # including the Content-Length short circuit before the body is read -
+        # lands in pixelforge_uploads_total exactly once.
+        UPLOADS_TOTAL.labels(result=exc.metric_result).inc()
         _LOG.info("upload_rejected", code=exc.code, detail=exc.detail)
         return JSONResponse(
             status_code=exc.status_code, content={"detail": exc.detail, "code": exc.code}
         )
 
-    @app.exception_handler(EnqueueFailed)
-    async def _handle_enqueue_failed(_request: Request, exc: EnqueueFailed) -> JSONResponse:
+    @app.exception_handler(EnqueueFailedError)
+    async def _handle_enqueue_failed(_request: Request, exc: EnqueueFailedError) -> JSONResponse:
         _LOG.error("enqueue_failed", error=str(exc))
         return JSONResponse(
             status_code=503,
@@ -137,9 +140,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(TransientDependencyError)
-    async def _handle_transient(
-        _request: Request, exc: TransientDependencyError
-    ) -> JSONResponse:
+    async def _handle_transient(_request: Request, exc: TransientDependencyError) -> JSONResponse:
         _LOG.error("dependency_unavailable", operation=exc.operation, error=str(exc))
         return JSONResponse(
             status_code=503,
@@ -149,10 +150,15 @@ def _register_exception_handlers(app: FastAPI) -> None:
             },
         )
 
+    @app.exception_handler(ChaosInjectedError)
+    async def _handle_chaos(_request: Request, _exc: ChaosInjectedError) -> JSONResponse:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "chaos: injected failure", "code": "chaos_injected_error"},
+        )
+
     @app.exception_handler(RequestValidationError)
-    async def _handle_validation(
-        _request: Request, exc: RequestValidationError
-    ) -> JSONResponse:
+    async def _handle_validation(_request: Request, exc: RequestValidationError) -> JSONResponse:
         return JSONResponse(
             status_code=422,
             content={"detail": _first_validation_message(exc), "code": "validation_error"},

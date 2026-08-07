@@ -7,21 +7,21 @@ instances.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-__all__ = ["utc_now", "utc_now_iso", "to_iso"]
+__all__ = ["to_iso", "utc_now", "utc_now_iso"]
 
 
 def utc_now() -> datetime:
     """Return the current time as a timezone-aware UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def to_iso(moment: datetime) -> str:
     """Render a datetime as an ISO-8601 UTC string with a trailing ``Z``."""
     if moment.tzinfo is None:
-        moment = moment.replace(tzinfo=timezone.utc)
-    return moment.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+        moment = moment.replace(tzinfo=UTC)
+    return moment.astimezone(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def utc_now_iso() -> str:

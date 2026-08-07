@@ -20,7 +20,7 @@ import structlog
 
 from shared.aws import JobQueue
 
-__all__ = ["VisibilityHeartbeat", "HEARTBEAT_INTERVAL_SECONDS", "VISIBILITY_EXTENSION_SECONDS"]
+__all__ = ["HEARTBEAT_INTERVAL_SECONDS", "VISIBILITY_EXTENSION_SECONDS", "VisibilityHeartbeat"]
 
 _LOG = structlog.get_logger(__name__)
 
@@ -89,11 +89,9 @@ class VisibilityHeartbeat:
                 # A failed extension is not fatal: the job may still finish
                 # before the current deadline, and idempotency makes a
                 # redelivery harmless.
-                _LOG.warning(
-                    "visibility_extension_failed", job_id=self._job_id, error=str(exc)
-                )
+                _LOG.warning("visibility_extension_failed", job_id=self._job_id, error=str(exc))
 
-    def __enter__(self) -> "VisibilityHeartbeat":
+    def __enter__(self) -> VisibilityHeartbeat:
         self.start()
         return self
 

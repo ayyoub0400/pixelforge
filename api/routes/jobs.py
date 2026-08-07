@@ -9,8 +9,9 @@ from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
+from api.chaos import apply_chaos
 from api.deps import get_config, get_service
-from api.service import JobService, UploadRejected
+from api.service import JobService, UploadRejectedError
 from shared.config import Config
 from shared.metrics import UPLOADS_TOTAL, UploadResult
 from shared.models import JobAcceptedResponse, JobRecord
@@ -20,7 +21,10 @@ __all__ = ["router"]
 
 _LOG = structlog.get_logger(__name__)
 
-router = APIRouter(prefix="/api/v1", tags=["jobs"])
+# The chaos dependency is attached at the router so it covers every job
+# endpoint and nothing else: /healthz, /readyz and /metrics keep telling the
+# truth while failures are being injected.
+router = APIRouter(prefix="/api/v1", tags=["jobs"], dependencies=[Depends(apply_chaos)])
 
 #: Upload body is consumed in chunks so an oversized payload is rejected after
 #: one megabyte rather than after buffering the whole thing.
@@ -42,7 +46,7 @@ async def _read_limited(upload: UploadFile, max_bytes: int) -> bytes:
         The complete payload.
 
     Raises:
-        UploadRejected: The payload is larger than the configured limit.
+        UploadRejectedError: The payload is larger than the configured limit.
     """
     chunks: list[bytes] = []
     total = 0
@@ -52,7 +56,7 @@ async def _read_limited(upload: UploadFile, max_bytes: int) -> bytes:
             break
         total += len(chunk)
         if total > max_bytes:
-            raise UploadRejected(
+            raise UploadRejectedError(
                 detail=f"file exceeds the {max_bytes} byte limit",
                 status_code=413,
                 code="payload_too_large",
@@ -86,14 +90,17 @@ async def create_job(
     no thumbnails exist yet. Poll ``GET /api/v1/jobs/{job_id}`` for the result.
     """
     declared_length = request.headers.get("content-length")
-    if declared_length and declared_length.isdigit():
-        if int(declared_length) > config.max_upload_bytes + _MULTIPART_OVERHEAD_BYTES:
-            raise UploadRejected(
-                detail=f"file exceeds the {config.max_upload_bytes} byte limit",
-                status_code=413,
-                code="payload_too_large",
-                metric_result=UploadResult.REJECTED_TOO_LARGE,
-            )
+    if (
+        declared_length
+        and declared_length.isdigit()
+        and int(declared_length) > config.max_upload_bytes + _MULTIPART_OVERHEAD_BYTES
+    ):
+        raise UploadRejectedError(
+            detail=f"file exceeds the {config.max_upload_bytes} byte limit",
+            status_code=413,
+            code="payload_too_large",
+            metric_result=UploadResult.REJECTED_TOO_LARGE,
+        )
 
     with span("api.create_job"):
         try:
@@ -104,8 +111,9 @@ async def create_job(
                 filename=file.filename,
                 content_type=file.content_type,
             )
-        except UploadRejected as exc:
-            UPLOADS_TOTAL.labels(result=exc.metric_result).inc()
+        except UploadRejectedError:
+            # Counted by the exception handler, which also sees rejections
+            # raised before this block.
             raise
         except Exception:
             # Dependency failures are counted here rather than in the service

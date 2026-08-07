@@ -13,22 +13,22 @@ CONTRACT section in step.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Final
 
 from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
-    "JobStatus",
-    "ThumbnailOutput",
-    "JobRecord",
-    "JobMessage",
-    "JobAcceptedResponse",
+    "MESSAGE_SCHEMA_VERSION",
     "ChaosRequest",
     "ChaosState",
-    "ReadinessResponse",
     "ErrorResponse",
-    "MESSAGE_SCHEMA_VERSION",
+    "JobAcceptedResponse",
+    "JobMessage",
+    "JobRecord",
+    "JobStatus",
+    "ReadinessResponse",
+    "ThumbnailOutput",
 ]
 
 #: Bumped whenever :class:`JobMessage` gains a breaking change. The worker
@@ -36,7 +36,7 @@ __all__ = [
 MESSAGE_SCHEMA_VERSION: Final[int] = 1
 
 
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     """Lifecycle of a job. Only ``COMPLETE`` and ``FAILED`` are terminal."""
 
     PENDING = "PENDING"
@@ -101,7 +101,7 @@ class JobRecord(BaseModel):
         return item
 
     @classmethod
-    def from_item(cls, item: dict[str, Any]) -> "JobRecord":
+    def from_item(cls, item: dict[str, Any]) -> JobRecord:
         """Rebuild from a DynamoDB item."""
         return cls.model_validate(item)
 

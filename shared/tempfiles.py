@@ -11,12 +11,13 @@ from __future__ import annotations
 import contextlib
 import shutil
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Final, Iterator
+from typing import Final
 
 import structlog
 
-__all__ = ["temp_workspace", "TEMP_PREFIX"]
+__all__ = ["TEMP_PREFIX", "temp_workspace"]
 
 TEMP_PREFIX: Final[str] = "pixelforge-"
 

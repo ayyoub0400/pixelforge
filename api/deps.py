@@ -14,7 +14,7 @@ from api.service import JobService
 from shared.aws import ReadinessProbe
 from shared.config import Config
 
-__all__ = ["get_config", "get_service", "get_chaos", "get_probe"]
+__all__ = ["get_chaos", "get_config", "get_probe", "get_service"]
 
 
 def get_config(request: Request) -> Config:
