@@ -137,11 +137,7 @@ data "aws_iam_policy_document" "worker" {
 resource "aws_iam_role" "api" {
 
   name = "${var.project_name}-${var.environment}-api"
-<<<<<<< HEAD
   assume_role_policy = data.aws_iam_policy_document.assume_from_account.json
-=======
-  assume_role_policy = data.aws_iam_policy_doucment.assume_from_account.json
->>>>>>> bbe75b519b1412ad09e3fe961cb3121bceb3b2e7
 
 }
 
@@ -149,11 +145,7 @@ resource "aws_iam_role" "api" {
 resource "aws_iam_role" "worker" {
 
   name = "${var.project_name}-${var.environment}-worker"
-<<<<<<< HEAD
   assume_role_policy = data.aws_iam_policy_document.assume_from_account.json
-=======
-  assume_role_policy = data.aws_iam_policy_doucment.assume_from_account.json
->>>>>>> bbe75b519b1412ad09e3fe961cb3121bceb3b2e7
 
 }
 
