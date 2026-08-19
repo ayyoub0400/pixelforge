@@ -1,0 +1,133 @@
+#policy to allow resources to assume roles within this account
+data "aws_iam_policy_document" "assume_from_account" {
+
+  statement {
+
+    actions = ["sts:AssumeRole"]
+
+
+    principals {
+
+      type = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    
+    }
+
+  }
+
+}
+
+
+
+#this is what the api and workers can do
+
+data "aws_iam_policy_document" "api" {
+
+  #our rules
+  statement {
+    
+    #statement id
+    sid = "WriteUploads"
+    
+    #what we want api to do
+    actions = ["s3:putObject"]
+  
+    #onto what
+    resources = ["${aws_s3_bucket.media.arn}/uploads/*"]
+  }
+
+  statement {
+    
+    sid = "Enqueue Jobs" 
+
+    actions = ["sqs:SendMessage"]
+
+    resources = [aws_sqs_queue.jobs.arn]
+
+  }
+  
+  statement {
+    
+    sid = "JobRecords"
+
+    actions = ["dynamoDB:putItem", "dynamoDB:getItem"]
+
+    resources = [aws_dynamodb_table.jobs.arn] 
+
+  }
+  
+  statement {
+    
+    sid = "ReadinessCheck"
+
+    actions = ["s3:ListBucket", "sqs:GetQueueAttributes"]
+
+    resources = [aws_s3_bucket.media.arn, aws_sqs_queue.jobs.arn]
+
+  }
+
+
+}
+
+data "aws_iam_policy_document" "worker" {
+
+  #our rules
+  statement {
+    
+    #statement id
+    sid = "WriteUploads"
+    
+    #what we want api to do
+    actions = ["s3:putObject"]
+  
+    #onto what
+    resources = ["${aws_s3_bucket.media.arn}/outputs/*"]
+  }
+
+  statement {
+    
+    sid = "ReadUploads" 
+
+    actions = ["s3:ListObject"]
+
+    resources = ["${aws_s3_bucket.media.arn}/uploads/*"]
+  }
+
+  
+  statement {
+  
+    sid = "ConsumeQueue"
+    actions = [
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:ChangeMessageVisibility",
+      "sqs:GetQueueAttributes",
+    ]
+    resources = [aws_sqs_queue.jobs.arn]
+  }
+
+  statement {
+
+    sid = "UpdateJobStatus"
+    actions = ["dynamodb:UpdateItem","dynamodb:GetItem"]
+    resources = [aws_dynamodb_table.jobs.arn] 
+  }
+
+  statement {
+    
+    sid = "JobRecords"
+
+    actions = ["dynamoDB:putItem", "dynamoDB:getItem"]
+
+    resources = [aws_dynamodb_table.jobs.arn] 
+  }
+  statement {
+    
+    sid = "ReadinessCheck"
+
+    actions = ["s3:ListBucket"]
+
+    resources = [aws_s3_bucket.media.arn]
+
+  }
+}
