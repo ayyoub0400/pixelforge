@@ -9,7 +9,7 @@ data "aws_iam_policy_document" "assume_from_account" {
     principals {
 
       type        = "AWS"
-      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+      identifiers = [data.aws_caller_identity.current.arn]
 
     }
 
