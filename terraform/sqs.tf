@@ -33,7 +33,7 @@ resource "aws_sqs_queue_redrive_allow_policy" "jobs_dlq" {
   #the rules
   redrive_allow_policy = jsonencode({
     #type of resource we allow
-    redrivePolicy = "byQueue"
+    redrivePermission = "byQueue"
 
     #the queue we are allowing dead messages from
     sourceQueueArns = [aws_sqs_queue.jobs.arn]
