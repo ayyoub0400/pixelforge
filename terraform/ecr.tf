@@ -1,6 +1,6 @@
 resource "aws_ecr_repository" "api" {
 
-	name = "${var.project_name}/api"
+  name = "${var.project_name}/api"
 
   #immutable so the tag cannot be overwritten
   #stops someone from overwriting the production image
@@ -22,7 +22,7 @@ resource "aws_ecr_repository" "api" {
 
 resource "aws_ecr_repository" "worker" {
 
-	name = "${var.project_name}/worker"
+  name = "${var.project_name}/worker"
 
   #immutable so the tag cannot be overwritten
   #stops someone from overwriting the production image
