@@ -46,4 +46,49 @@ jobs:
       - run: terraform validate
         working-directory: terraform
   build:
+    #depends on the above two
+    needs: [test,terraform]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    
+    #run both jobs in parallel
+    strategy:
+      matrix:
+        service: [api,worker]
+
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+        #OIDC Exchange
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+        #pushing each service's image
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/DockerFile.$${{ matrix.service }}
+          
+          #push circumstances
+          push: ${{ github.event_name != 'pull_request' }}
+
+          #image tag
+          tags: ${{ steps.ecr.outputs.registry }}/pixelforge/${{ matrix.service }}:${{ github.sha }}
+
+          cache-from: type=gha
+          cache-to: type=gha, mode=max
 
