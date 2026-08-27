@@ -75,7 +75,7 @@ data "aws_iam_policy_document" "worker" {
   statement {
 
     #statement id
-    sid = "WriteUploads"
+    sid = "WriteOutputs"
 
     #what we want api to do
     actions = ["s3:putObject"]
@@ -88,7 +88,7 @@ data "aws_iam_policy_document" "worker" {
 
     sid = "ReadUploads"
 
-    actions = ["s3:ListObject"]
+    actions = ["s3:GetObject"]
 
     resources = ["${aws_s3_bucket.media.arn}/uploads/*"]
   }
@@ -117,7 +117,7 @@ data "aws_iam_policy_document" "worker" {
 
     sid = "JobRecords"
 
-    actions = ["dynamoDB:putItem", "dynamoDB:getItem"]
+    actions = ["dynamoDB:UpdateItem", "dynamoDB:GetItem"]
 
     resources = [aws_dynamodb_table.jobs.arn]
   }
