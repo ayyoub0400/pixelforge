@@ -1,0 +1,49 @@
+#name of our workflow
+name: ci
+
+#our triggers (pushes to main & PRs)
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+#concurrency of workflows
+concurrency:
+  group: ci-${{ github.ref }}
+
+  #cancel the older run
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+
+env:
+  AWS_REGION: eu-west-2
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          #cache key
+          cache: pip
+      - run: pip install -r requirements/dev.txt
+      - run: pytest -q  
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive
+        working-directory: terraform
+      - run: terraform init -backend=false
+        working-directory: terraform
+      - run: terraform validate
+        working-directory: terraform
+  build:
+
