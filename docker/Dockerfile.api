@@ -1,59 +1,39 @@
-# syntax=docker/dockerfile:1
-#
-# pixelforge API image.
-#
-# Build from the repository root:
-#   docker build -f docker/Dockerfile.api -t pixelforge-api:dev .
-#
-# The runtime stage carries the virtualenv and two source packages, nothing
-# else: no compilers, no pip cache, no tests, no build arguments and no
-# secrets. The entrypoint is the Python process itself in exec form, so it is
-# PID 1 and receives SIGTERM directly - there is no shell wrapper to swallow
-# the signal.
-
-FROM python:3.12-slim AS builder
-
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_ROOT_USER_ACTION=ignore
+#lightweight debian builder image
+FROM python:3.12-slim AS builder 
 
 WORKDIR /build
 
+#create virtual environment
 RUN python -m venv /opt/venv
+
+#prepend to path
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Only the pinned closure is copied, so a source-only change does not
-# invalidate the dependency layer.
+#copy our requirements to /build/requirements/
 COPY requirements/api.txt ./requirements/api.txt
+
+#install dependencies to venv 
 RUN pip install --no-cache-dir -r requirements/api.txt
+
 
 
 FROM python:3.12-slim AS runtime
 
-LABEL org.opencontainers.image.title="pixelforge-api" \
-      org.opencontainers.image.description="Asynchronous image processing API" \
-      org.opencontainers.image.source="https://github.com/example/pixelforge" \
-      org.opencontainers.image.licenses="Apache-2.0"
-
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONFAULTHANDLER=1 \
-    PATH="/opt/venv/bin:$PATH" \
-    # Temporary files go to /tmp and nowhere else. Mount an emptyDir there if
-    # the pod runs with a read-only root filesystem.
+ENV PATH="/opt/venv/bin:$PATH" \
     TMPDIR=/tmp
 
-# Fixed UID/GID so a Kubernetes securityContext can pin runAsUser: 10001 and
-# so file ownership is stable across rebuilds.
+#create nonroot group+user 
 RUN groupadd --gid 10001 pixelforge \
  && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin pixelforge
 
+#copy installed packages
 COPY --from=builder /opt/venv /opt/venv
 
 WORKDIR /app
 COPY shared/ ./shared/
 COPY api/ ./api/
 
+#switch to nonroot user
 USER 10001:10001
 
 EXPOSE 8000
