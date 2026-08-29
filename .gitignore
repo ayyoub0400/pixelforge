@@ -1,8 +1,6 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
-# Local .terraform directories
-.terraform/
 
 # .tfstate files
 *.tfstate
