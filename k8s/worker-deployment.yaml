@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pixelforge-worker
+  namespace: pixelforge
+spec:
+  #temporary - replaced with KEDA later on
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pixelforge-worker
+  template:
+    metadata:
+      labels:
+        app: pixelforge-worker
+    spec:
+      #allow for pod to recognise sigterm and complete job before sigkill
+      #20s poll + 35s for job completion
+      terminationGracePeriodSeconds: 55 
+      
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true #refuse start if attempt to run as root 
+        fsGroup: 10001 #owner of volumes
+
+
+      containers:
+        - name: worker
+          image: pixelforge-worker:local
+          
+          #when to pull images - only if not available locally 
+          imagePullPolicy: IfNotPresent
+
+          #for observability/monitoring
+          ports:
+            - name: metrics
+              containerPort: 9090
+
+          envFrom:
+            #environment variables
+            - configMapRef:
+                name: pixelforge-config
+            #AWS Creds temporarily
+            - secretRef:
+                name: worker-aws-creds
+
+
+          #container specific securityContext
+          securityContext:
+            allowPrivilegeEscalation: false #remain as root
+            readOnlyRootFilesystem: true #unable to amend filesystem
+            capabilities:
+              drop: ["ALL"] #drop kernel capabilities
+
+          volumeMounts: 
+            - name: tmp
+              mountPath: /tmp #overrides readonlyfs and allows /tmp access
+
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+
+          livenessProbe:
+            httpGet: #send get requests to healthz
+              path: /healthz
+              port: 9090
+            initialDelaySeconds: 10 #allow pod to start
+            periodSeconds: 20 #20 sec intervals
+
+      volumes:
+        - name: tmp
+          emptyDir: {}

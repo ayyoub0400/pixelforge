@@ -6,6 +6,12 @@ __pycache__/
 *.tfstate
 *.tfstate.*
 
+
+#script
+terraform/*.sh
+
+*.jpg
+
 # Crash log files
 crash.log
 crash.*.log

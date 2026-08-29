@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pixelforge-config
+  namespace: pixelforge
+data:
+  AWS_REGION: "eu-west-2"
+  S3_BUCKET: "pixelforge-dev-media-266735805454"
+  SQS_QUEUE_URL: "https://sqs.eu-west-2.amazonaws.com/266735805454/pixelforge-dev-jobs"
+  DYNAMODB_TABLE: "pixelforge-dev-jobs"
+  LOG_LEVEL: "INFO"
+  SHUTDOWN_GRACE_SECONDS: "30"

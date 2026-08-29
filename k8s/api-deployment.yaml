@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pixelforge-api
+  namespace: pixelforge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pixelforge-api
+  template:
+    metadata:
+      labels:
+        app: pixelforge-api
+    spec:
+      terminationGracePeriodSeconds: 30 
+      
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true #refuse start if attempt to run as root 
+        fsGroup: 10001 #owner of volumes
+
+
+      containers:
+        - name: api
+          image: pixelforge-api:local
+          
+          #when to pull images - only if not available locally 
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 8000
+
+          envFrom:
+            #environment variables
+            - configMapRef:
+                name: pixelforge-config
+            #AWS Creds temporarily
+            - secretRef:
+                name: api-aws-creds
+
+
+          #container specific securityContext
+          securityContext:
+            allowPrivilegeEscalation: false #remain as root
+            readOnlyRootFilesystem: true #unable to amend filesystem
+            capabilities:
+              drop: ["ALL"] #drop kernel capabilities
+
+          volumeMounts: 
+            - name: tmp
+              mountPath: /tmp #overrides readonlyfs and allows /tmp access
+
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+
+          livenessProbe:
+            httpGet: #send get requests to healthz
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10 #allow pod to start
+            periodSeconds: 20 #20 sec intervals
+
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pixelforge-api
+  namespace: pixelforge
+spec:
+  selector:
+    app: pixelforge-api
+  ports:
+    - port: 80 #exposing port 80 on service
+      targetPort: 8000 #on pod
