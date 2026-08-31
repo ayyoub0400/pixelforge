@@ -90,7 +90,7 @@ jobs:
       - uses: docker/build-push-action@v7
         with:
           context: .
-          file: docker/DockerFile.${{ matrix.service }}
+          file: docker/Dockerfile.${{ matrix.service }}
           
           #push circumstances
           push: ${{ github.event_name != 'pull_request' }}
