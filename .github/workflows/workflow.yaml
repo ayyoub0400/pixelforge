@@ -22,29 +22,34 @@ env:
   AWS_REGION: eu-west-2
 
 jobs:
+  #halt on failed python tests
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           #cache key
           cache: pip
       - run: pip install -r requirements/dev.txt
       - run: pytest -q  
-
+  
+  #halt on failed terraform validation
   terraform:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
       - run: terraform fmt -check -recursive
         working-directory: terraform
       - run: terraform init -backend=false
         working-directory: terraform
       - run: terraform validate
         working-directory: terraform
+  
+  #build and push docker images
+  #scanned by trivy for high/crit vulnerabilities 
   build:
     #depends on the above two
     needs: [test,terraform]
