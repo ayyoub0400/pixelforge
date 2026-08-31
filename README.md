@@ -1,5 +1,7 @@
 # pixelforge
 
+# The following application was developed strictly by Claude AI, with the only purpose of giving me something to use in my project.
+
 Asynchronous image processing. Upload an image, get a job id back immediately,
 and collect three thumbnails plus EXIF metadata when the worker has finished.
 
