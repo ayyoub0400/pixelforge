@@ -39,8 +39,8 @@ data "aws_iam_policy_document" "ci_assume" {
 
       #subjects are pushes to main and PR request runs
       values = [
-        "repo:ayyoub0400/pixelforge:ref:refs/heads/main",
-        "repo:ayyoub0400/pixelforge:pull_request",
+        "repo:ayyoub0400@27741242/pixelforge@1326882008:ref:refs/heads/main",
+        "repo:ayyoub0400@27741242/pixelforge@1326882008:pull_request",
       ]
 
     }
