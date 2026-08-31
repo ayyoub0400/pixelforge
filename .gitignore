@@ -7,9 +7,6 @@ __pycache__/
 *.tfstate.*
 
 
-#script
-terraform/*.sh
-
 *.jpg
 
 # Crash log files
