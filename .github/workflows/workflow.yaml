@@ -23,7 +23,7 @@ env:
 
 jobs:
   #halt on failed python tests
-  test:
+  PyTest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,7 +36,7 @@ jobs:
       - run: pytest -q  
   
   #halt on failed terraform validation
-  terraform:
+  TFValidation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -52,7 +52,7 @@ jobs:
   #scanned by trivy for high/crit vulnerabilities 
   build:
     #depends on the above two
-    needs: [test,terraform]
+    needs: [PyTest,TFValidation]
     runs-on: ubuntu-latest
     permissions:
       contents: read
