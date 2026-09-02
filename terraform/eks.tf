@@ -91,13 +91,13 @@ resource "aws_eks_access_policy_association" "self_admin" {
 data "aws_iam_policy_document" "node_assume" {
 
   statement {
-  
+
     actions = ["sts:AssumeRole"]
     principals {
 
-      type = "Service"
+      type        = "Service"
       identifiers = ["ec2.amazonaws.com"]
-    
+
     }
 
   }
@@ -106,7 +106,7 @@ data "aws_iam_policy_document" "node_assume" {
 
 resource "aws_iam_role" "node" {
 
-  name = "${var.project_name}-${var.environment}-node"
+  name               = "${var.project_name}-${var.environment}-node"
   assume_role_policy = data.aws_iam_policy_document.node_assume.json
 
 }
@@ -133,9 +133,9 @@ resource "aws_iam_role_policy_attachment" "node_ecr" {
 
 resource "aws_eks_node_group" "default" {
 
-  cluster_name = aws_eks_cluster.this.name
+  cluster_name    = aws_eks_cluster.this.name
   node_group_name = "${var.project_name}-${var.environment}-default"
-  node_role_arn = aws_iam_role.node.arn
+  node_role_arn   = aws_iam_role.node.arn
 
   subnet_ids = module.vpc.private_subnets
 
@@ -144,13 +144,13 @@ resource "aws_eks_node_group" "default" {
   scaling_config {
 
     desired_size = 2
-    min_size = 1
-    max_size = 3
+    min_size     = 1
+    max_size     = 3
 
   }
 
   instance_types = ["t3.medium"]
-  capacity_type = "ON_DEMAND"
+  capacity_type  = "ON_DEMAND"
 
   depends_on = [
     aws_iam_role_policy_attachment.node_worker,

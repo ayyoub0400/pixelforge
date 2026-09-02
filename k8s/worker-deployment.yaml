@@ -43,9 +43,6 @@ spec:
             #environment variables
             - configMapRef:
                 name: pixelforge-config
-            #AWS Creds temporarily
-            - secretRef:
-                name: worker-aws-creds
 
 
           #container specific securityContext

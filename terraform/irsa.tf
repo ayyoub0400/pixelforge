@@ -11,7 +11,7 @@ resource "aws_iam_openid_connect_provider" "eks" {
 
   #trusted issuer url
   url = aws_eks_cluster.this.identity[0].oidc[0].issuer
-  
+
   #incoming tokens from provider are meant for sts
   client_id_list = ["sts.amazonaws.com"]
 
@@ -31,24 +31,24 @@ data "aws_iam_policy_document" "assume_from_cluster_api" {
 
     principals {
 
-      type = "Federated"
+      type        = "Federated"
       identifiers = [aws_iam_openid_connect_provider.eks.arn]
 
     }
-    
+
     condition {
 
       test = "StringEquals"
       #token has to be intended for aws sts
-      variable  = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud"
-      values = ["sts.amazonaws.com"]
+      variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
     }
     condition {
 
       test = "StringEquals"
       #token has to be inteded for api role
       variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
-      values = ["system:serviceaccount:pixelforge:api"]
+      values   = ["system:serviceaccount:pixelforge:api"]
     }
 
   }
@@ -63,24 +63,24 @@ data "aws_iam_policy_document" "assume_from_cluster_worker" {
 
     principals {
 
-      type = "Federated"
+      type        = "Federated"
       identifiers = [aws_iam_openid_connect_provider.eks.arn]
 
     }
-    
+
     condition {
 
       test = "StringEquals"
       #token has to be intended for aws sts
-      variable  = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud"
-      values = ["sts.amazonaws.com"]
+      variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
     }
     condition {
 
       test = "StringEquals"
       #token has to be inteded for api role
       variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
-      values = ["system:serviceaccount:pixelforge:worker"]
+      values   = ["system:serviceaccount:pixelforge:worker"]
     }
 
   }
