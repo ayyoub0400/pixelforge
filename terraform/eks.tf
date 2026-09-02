@@ -6,7 +6,7 @@ data "aws_iam_policy_document" "eks_cluster_assume" {
 
     actions = ["sts:AssumeRole"]
     principals {
-      type = "Service"
+      type        = "Service"
       identifiers = ["eks.amazonaws.com"]
     }
   }
@@ -23,9 +23,9 @@ resource "aws_iam_role" "eks_cluster" {
 
 #what policies we are attaching to this role
 
-resource "aws_iam_policy_attachment" "eks_cluster" {
+resource "aws_iam_role_policy_attachment" "eks_cluster" {
 
-  role = aws_iam_role.eks_cluster.name
+  role       = aws_iam_role.eks_cluster.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 
 }
@@ -38,15 +38,15 @@ resource "aws_eks_cluster" "this" {
   name = "${var.project_name}-${var.environment}"
 
   #giving it our above created role
-  role = aws_iam_role.eks_cluster.arn
+  role_arn = aws_iam_role.eks_cluster.arn
 
   version = "1.35"
 
   #linking to our created vpc
   vpc_config {
 
-    subnet_ids = concat(module.vpc.private_subnets, module.vpc.public_subnets)
-    endpoint_public_access = true
+    subnet_ids              = concat(module.vpc.private_subnets, module.vpc.public_subnets)
+    endpoint_public_access  = true
     endpoint_private_access = false
 
   }
@@ -71,7 +71,7 @@ resource "aws_eks_access_entry" "self" {
 #granting eksadminrole to principal
 resource "aws_eks_access_policy_association" "self_admin" {
 
-  cluster_name = aws_eks_cluster.this.name
+  cluster_name  = aws_eks_cluster.this.name
   principal_arn = data.aws_caller_identity.current.arn
   #the policy
   policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
