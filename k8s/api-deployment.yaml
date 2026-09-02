@@ -13,8 +13,10 @@ spec:
       labels:
         app: pixelforge-api
     spec:
-      terminationGracePeriodSeconds: 30 
       
+      terminationGracePeriodSeconds: 30 
+      serviceAccountName: api
+
       securityContext:
         runAsUser: 10001
         runAsGroup: 10001

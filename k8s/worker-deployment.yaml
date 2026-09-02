@@ -18,6 +18,8 @@ spec:
       #20s poll + 35s for job completion
       terminationGracePeriodSeconds: 55 
       
+      serviceAccountName: worker
+
       securityContext:
         runAsUser: 10001
         runAsGroup: 10001

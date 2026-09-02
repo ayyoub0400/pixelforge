@@ -137,7 +137,7 @@ data "aws_iam_policy_document" "worker" {
 resource "aws_iam_role" "api" {
 
   name               = "${var.project_name}-${var.environment}-api"
-  assume_role_policy = data.aws_iam_policy_document.assume_from_account.json
+  assume_role_policy = data.aws_iam_policy_document.assume_from_cluster_api.json
 
 }
 
@@ -145,7 +145,7 @@ resource "aws_iam_role" "api" {
 resource "aws_iam_role" "worker" {
 
   name               = "${var.project_name}-${var.environment}-worker"
-  assume_role_policy = data.aws_iam_policy_document.assume_from_account.json
+  assume_role_policy = data.aws_iam_policy_document.assume_from_cluster_worker.json
 
 }
 
