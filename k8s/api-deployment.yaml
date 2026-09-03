@@ -14,7 +14,7 @@ spec:
         app: pixelforge-api
     spec:
       
-      terminationGracePeriodSeconds: 30 
+      terminationGracePeriodSeconds: 35
       serviceAccountName: api
 
       securityContext:
@@ -26,7 +26,7 @@ spec:
 
       containers:
         - name: api
-          image: pixelforge-api:local
+          image: 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/api:dev
           
           #when to pull images - only if not available locally 
           imagePullPolicy: IfNotPresent

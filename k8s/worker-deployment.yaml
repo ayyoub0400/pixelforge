@@ -29,7 +29,7 @@ spec:
 
       containers:
         - name: worker
-          image: pixelforge-worker:local
+          image: 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/worker:dev
           
           #when to pull images - only if not available locally 
           imagePullPolicy: IfNotPresent
