@@ -1,6 +1,10 @@
 # pixelforge
 
-# The following application was developed strictly by Claude AI, with the only purpose of giving me something to use in my DevOps project.
+## Purpose and ownership
+
+This is my in-progress DevOps/platform capstone. Claude AI generated the Python application and its supporting application scaffold so I could focus on infrastructure and delivery engineering. I am building the AWS Terraform configuration, IAM/OIDC integration, CI workflow and Kubernetes deployment layer around it.
+
+This is an independent learning environment, not a service for external users. The AWS deployment is not currently live. Application features and bundled test results below are not claims of personally authored Python software or commercial production experience.
 
 Asynchronous image processing. Upload an image, get a job id back immediately,
 and collect three thumbnails plus EXIF metadata when the worker has finished.
@@ -30,10 +34,42 @@ and a backlog becomes a metric instead of a timeout.
                                           └── failures ─▶ DLQ (maxReceiveCount=3)
 ```
 
-**Scope.** This repository is the application only: two container images and
-the contract below. There is no Terraform, no Kubernetes manifest, no Helm
-chart and no CI workflow here — those are the platform engineer's, built
-against the [CONTRACT](#contract).
+## Platform implementation status
+
+Reviewed against the committed repository on 7 September 2026. Configuration present in Git is not the same as an independently verified running deployment.
+
+| Area | Present in the repository | Remaining work |
+| --- | --- | --- |
+| AWS infrastructure | [terraform/](terraform/): VPC, EKS/node group, ECR, S3, SQS/DLQ and DynamoDB | Validate deployed behaviour and document recovery/cost checks |
+| Terraform state | S3 backend, encryption and native `use_lockfile` | Bootstrap/protect the state bucket separately |
+| Workload identity | Per-service IAM permissions and IRSA trust policies | Verify allowed and denied operations in running pods |
+| CI | [workflow.yaml](.github/workflows/workflow.yaml): pytest, Terraform checks, Trivy filesystem scan, matrix image build | Add final-image scanning and deployment/rollback integration |
+| AWS CI authentication | GitHub OIDC role and ECR publishing with commit-SHA tags | Validate trust claims and intended PR access |
+| Kubernetes | [k8s/](k8s/): API/worker Deployments, API Service, ConfigMap and service accounts | Resolve image-tag/probe setup and document namespace bootstrap |
+| Observability | Application metrics endpoints, structured logs and optional tracing hooks | Prometheus/Grafana deployment, dashboards and alert rules are planned |
+| Autoscaling | Single-replica application manifests | KEDA/worker autoscaling is planned; node scaling is a separate concern |
+
+### Known platform gaps before redeployment
+
+- CI publishes commit-SHA tags, while the Kubernetes manifests reference `:dev`. Choose an existing published image tag or digest and update the manifests.
+- The worker Deployment requests `/healthz` on port 9090, while the documented worker contract uses `/metrics`. Verify the server's actual response handling and align the probe with a documented endpoint.
+- The workflow's Trivy step uses `scan-type: fs`; it is not a scan of the final built container image.
+- There is no committed namespace manifest. Create the `pixelforge` namespace or add it to the deployment process before namespaced resources.
+- Account-specific values are committed in backend/configuration/manifests. Adapt them to your own sandbox rather than copying them blindly.
+- CI attempts AWS authentication on PR runs even though image pushing is disabled there; review fork behaviour and the intended OIDC trust boundary.
+- The EKS API endpoint is public, and the VPC uses one NAT gateway. Review access restrictions and availability/cost trade-offs.
+- The media bucket uses `force_destroy = true` and disables versioning; ECR repositories also enable forced deletion. These are disposable-lab settings, not data-retention controls.
+- The deployment helper applies a supplied plan and then reads outputs; it does not stop reliably on every preceding failure. Review it before use.
+
+These are documentation findings; application, infrastructure and workflow code are unchanged.
+
+### Cloud deployment and cleanup
+
+Use an AWS sandbox, Terraform 1.10 or later (as constrained in the repository), AWS CLI and kubectl. Bootstrap your own state bucket, authenticate, adapt environment values and review a Terraform plan before applying. Configure the GitHub role reference and validate OIDC claims, then reconcile Kubernetes prerequisites and image references above.
+
+Do not treat the local quickstart below as an EKS installer. Cloud resources such as EKS, nodes and NAT incur ongoing charges. Set a budget, review current regional prices and remove only resources belonging to your disposable lab. Preserve required media, images and state before any teardown: forced deletion settings can remove stored data.
+
+**Application contract.** The remaining sections describe the application interface that the platform is built against. Preserve the contract when changing infrastructure, and verify runtime behaviour with tests.
 
 ---
 
@@ -644,6 +680,9 @@ backoff ladder.
 ## Repository layout
 
 ```
+terraform/    AWS infrastructure, IAM, OIDC and remote-state configuration
+k8s/          Kubernetes deployment and configuration manifests
+.github/      GitHub Actions CI workflow
 api/          FastAPI service: routes, upload/status logic, chaos controller
 worker/       SQS consumer, job pipeline, visibility heartbeat
 shared/       config, AWS wrappers, models, logging, metrics, tracing, images
