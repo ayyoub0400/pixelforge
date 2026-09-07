@@ -65,7 +65,7 @@ spec:
 
           livenessProbe:
             httpGet: #send get requests to healthz
-              path: /healthz
+              path: /metrics
               port: 9090
             initialDelaySeconds: 10 #allow pod to start
             periodSeconds: 20 #20 sec intervals
