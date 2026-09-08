@@ -20,13 +20,13 @@ CI_ROLE=$(terraform output -raw ci_role_arn)
 
 aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 266735805454.dkr.ecr.eu-west-2.amazonaws.com
 
-sleep 3 
+sleep 5 
 cd ~/pixelforge
 
 docker build -f docker/Dockerfile.api -t 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/api:dev .
 docker push 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/api:dev
 
-sleep 3
+sleep 5
 
 docker build -f docker/Dockerfile.worker -t 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/worker:dev .
 docker push 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/worker:dev
@@ -37,11 +37,16 @@ sleep 5
 
 kubectl create namespace pixelforge
 
-sleep 3
+sleep 5
 
 kubectl apply -f k8s/serviceaccounts.yaml
 kubectl apply -f k8s/
 
-sleep 3
+sleep 20
 
 kubectl port-forward -n pixelforge svc/pixelforge-api 8000:80
+
+sleep 5
+
+bash keda.sh
+

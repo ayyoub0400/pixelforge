@@ -1,0 +1,41 @@
+#triggerauth(worker role) + scaledobject(worker pods)
+#https://keda.sh/docs/2.20/reference/scaledobject-spec/
+#https://keda.sh/docs/2.20/concepts/authentication/
+
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: worker-aws-identity
+  namespace: pixelforge
+spec:
+  podIdentity:
+    provider: aws
+    identityOwner: workload 
+---
+
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: pixelforge-worker
+  namespace: pixelforge
+spec:
+  scaleTargetRef:
+    name: pixelforge-worker #targeting this deployment
+  pollingInterval: 10 #poll sqs every 10s
+  cooldownPeriod: 60 #wait a minute before scaling down to 0 replicas
+  minReplicaCount: 0
+  maxReplicaCount: 4
+  advanced:
+    horizontalPodAutoScalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 60
+  triggers: #https://keda.sh/docs/2.20/scalers/aws-sqs/
+    - type: aws-sqs-queue
+      metadata:
+        queueURLFromEnv: QUEUE_URL
+        awsRegion: "eu-west-2"
+        queueLength: "5"
+        activationQueueLength: "0"
+        scaleOnInFlight: "false"
+

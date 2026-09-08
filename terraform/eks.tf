@@ -66,16 +66,16 @@ resource "aws_eks_cluster" "this" {
 
 data "aws_eks_addon_version" "metrics_server" {
 
-  addon_name = "metrics-server"
+  addon_name         = "metrics-server"
   kubernetes_version = aws_eks_cluster.this.version
-  most_recent = true
+  most_recent        = true
 
 }
 
 resource "aws_eks_addon" "metrics_server" {
 
-  cluster_name = aws_eks_cluster.this.name
-  addon_name = "metrics-server"
+  cluster_name  = aws_eks_cluster.this.name
+  addon_name    = "metrics-server"
   addon_version = data.aws_eks_addon_version.metrics_server.version
 
   #needs worker nodes to schedule the metric-server pods onto
