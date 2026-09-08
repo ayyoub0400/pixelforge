@@ -2,7 +2,9 @@
 
 read -p "Enter TFPlan filename: " tfplan
 
-if [ -f "$tfplan" ]; then
+if [[ "$tfplan" = "skip" ]]; then
+	echo "Skipped"
+elif [ -f "$tfplan" ]; then
 	terraform apply "$tfplan"
 else
 	echo "TFPlan file does not exist, please check again"
@@ -19,14 +21,27 @@ CI_ROLE=$(terraform output -raw ci_role_arn)
 aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 266735805454.dkr.ecr.eu-west-2.amazonaws.com
 
 sleep 3 
+cd ~/pixelforge
 
-docker build -f ../docker/Dockerfile.api -t 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/api:dev
+docker build -f docker/Dockerfile.api -t 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/api:dev .
 docker push 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/api:dev
 
 sleep 3
 
-docker build -f ../docker/Dockerfile.worker -t 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/worker:dev
+docker build -f docker/Dockerfile.worker -t 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/worker:dev .
 docker push 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/worker:dev
 
-kubectl apply -f ../k8s/serviceaccounts.yaml
-kubectl apply -f ../k8s/
+aws eks update-kubeconfig --region eu-west-2 --name pixelforge-dev
+
+sleep 5
+
+kubectl create namespace pixelforge
+
+sleep 3
+
+kubectl apply -f k8s/serviceaccounts.yaml
+kubectl apply -f k8s/
+
+sleep 3
+
+kubectl port-forward -n pixelforge svc/pixelforge-api 8000:80

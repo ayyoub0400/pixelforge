@@ -4,8 +4,6 @@ metadata:
   name: pixelforge-worker
   namespace: pixelforge
 spec:
-  #temporary - replaced with KEDA later on
-  replicas: 1
   selector:
     matchLabels:
       app: pixelforge-worker
@@ -34,7 +32,7 @@ spec:
           #when to pull images - only if not available locally 
           imagePullPolicy: IfNotPresent
 
-          #for observability/monitoring
+          #for observability/monitoring - metrics = 9090
           ports:
             - name: metrics
               containerPort: 9090
@@ -66,7 +64,7 @@ spec:
           livenessProbe:
             httpGet: #send get requests to healthz
               path: /metrics
-              port: 9090
+              port: metrics
             initialDelaySeconds: 10 #allow pod to start
             periodSeconds: 20 #20 sec intervals
 

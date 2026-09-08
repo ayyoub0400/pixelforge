@@ -84,9 +84,14 @@ kind: Service
 metadata:
   name: pixelforge-api
   namespace: pixelforge
+  #for service monitor to select this service
+  labels:
+    app: pixelforge-api
 spec:
   selector:
     app: pixelforge-api
+  #http = 80 > 8000
   ports:
-    - port: 80 #exposing port 80 on service
-      targetPort: 8000 #on pod
+    - name: http
+      port: 80 #exposing port 80 on service
+      targetPort: http #on pod

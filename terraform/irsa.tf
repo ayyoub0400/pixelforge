@@ -3,6 +3,7 @@
 #fetches TLS certificate of cluster url
 data "tls_certificate" "eks" {
 
+  #Globally unique
   url = aws_eks_cluster.this.identity[0].oidc[0].issuer
 
 }

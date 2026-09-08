@@ -60,6 +60,31 @@ resource "aws_eks_cluster" "this" {
   depends_on = [aws_iam_role_policy_attachment.eks_cluster]
 }
 
+
+#adding metrics server for API HPA
+#grabbing latest version
+
+data "aws_eks_addon_version" "metrics_server" {
+
+  addon_name = "metrics-server"
+  kubernetes_version = aws_eks_cluster.this.version
+  most_recent = true
+
+}
+
+resource "aws_eks_addon" "metrics_server" {
+
+  cluster_name = aws_eks_cluster.this.name
+  addon_name = "metrics-server"
+  addon_version = data.aws_eks_addon_version.metrics_server.version
+
+  #needs worker nodes to schedule the metric-server pods onto
+  depends_on = [aws_eks_node_group.default]
+
+}
+
+
+
 #specifying access to cluster
 resource "aws_eks_access_entry" "self" {
   cluster_name = aws_eks_cluster.this.name
