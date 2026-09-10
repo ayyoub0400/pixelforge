@@ -1,0 +1,24 @@
+#https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pixelforge-api
+  namespace: pixelforge
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pixelforge-api
+  minReplicas: 1 #need at least one to be ready
+  maxReplicas: 4
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 120
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65

@@ -81,7 +81,10 @@ data "aws_iam_policy_document" "assume_from_cluster_worker" {
       test = "StringEquals"
       #token has to be inteded for api role
       variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
-      values   = ["system:serviceaccount:pixelforge:worker"]
+      values   = [
+        "system:serviceaccount:pixelforge:worker",
+        "system:serviceaccount:keda:keda-operator",
+      ]
     }
 
   }

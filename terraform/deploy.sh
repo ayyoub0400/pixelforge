@@ -40,13 +40,15 @@ kubectl create namespace pixelforge
 sleep 5
 
 kubectl apply -f k8s/serviceaccounts.yaml
-kubectl apply -f k8s/
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/api-deployment.yaml
+kubectl apply -f k8s/worker-deployment.yaml
 
 sleep 20
 
-kubectl port-forward -n pixelforge svc/pixelforge-api 8000:80
+kubectl port-forward -n pixelforge svc/pixelforge-api 8000:80 &
 
 sleep 5
 
-bash keda.sh
+bash terraform/keda.sh
 

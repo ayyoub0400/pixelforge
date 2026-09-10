@@ -26,14 +26,16 @@ spec:
   minReplicaCount: 0
   maxReplicaCount: 4
   advanced:
-    horizontalPodAutoScalerConfig:
+    horizontalPodAutoscalerConfig:
       behavior:
         scaleDown:
           stabilizationWindowSeconds: 60
   triggers: #https://keda.sh/docs/2.20/scalers/aws-sqs/
     - type: aws-sqs-queue
+      authenticationRef:
+        name: worker-aws-identity
       metadata:
-        queueURLFromEnv: QUEUE_URL
+        queueURLFromEnv: SQS_QUEUE_URL
         awsRegion: "eu-west-2"
         queueLength: "5"
         activationQueueLength: "0"
