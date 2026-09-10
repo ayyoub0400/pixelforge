@@ -1,0 +1,13 @@
+prometheus:
+  prometheusSpec:
+    retention: 6h
+    retentionSize: 2GB
+
+grafana:
+  defaultDashboardsEnabled: true #for simplicity
+  persistence:
+    enabled: false #not going to stay up
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL #to find our dashboard configmap

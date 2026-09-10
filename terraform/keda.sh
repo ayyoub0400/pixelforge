@@ -10,13 +10,14 @@ helm upgrade --install keda kedacore/keda \
 	--set prometheus.operator.enabled=true \
 	--wait \
 	--timeout 5m
-	--set podIdentity.aws.irsa.enabled=true \
+	--set-string podIdentity.aws.irsa.enabled=true \
 	--set-string podIdentity.aws.irsa.roleArn="${WORKER_ROLE}" \
-	--set-string podIdentity.aws.irsa.stsRegionalEndpoints=true
+	--set-string podIdentity.aws.irsa.stsRegionalEndpoints=true 
+
 
 #https://keda.sh/docs/2.20/authentication-providers/aws/
 
-sleep 30
+sleep 10
 
 kubectl get pods -n keda
 

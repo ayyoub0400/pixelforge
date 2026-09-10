@@ -23,12 +23,10 @@ aws ecr get-login-password --region eu-west-2 | docker login --username AWS --pa
 sleep 5 
 cd ~/pixelforge
 
-docker build -f docker/Dockerfile.api -t 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/api:dev .
 docker push 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/api:dev
 
 sleep 5
 
-docker build -f docker/Dockerfile.worker -t 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/worker:dev .
 docker push 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/worker:dev
 
 aws eks update-kubeconfig --region eu-west-2 --name pixelforge-dev

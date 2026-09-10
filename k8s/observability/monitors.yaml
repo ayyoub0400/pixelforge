@@ -1,0 +1,34 @@
+#we will place our service and pod monitor here
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pixelforge-api
+  namespace: pixelforge
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: pixelforge-api #service's label
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: pixelforge-worker
+  namespace: pixelforge
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: pixelforge-worker
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
