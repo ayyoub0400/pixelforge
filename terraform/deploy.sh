@@ -10,17 +10,21 @@ else
 	echo "TFPlan file does not exist, please check again"
 fi
 
-QUEUE_URL=$(terraform output -raw sqs_queue_url)
-BUCKET=$(terraform output -raw s3_bucket)
-TABLE=$(terraform output -raw dynamodb_table)
-TABLE_ARN=$(terraform output -raw dynamodb_table_arn)
-API_ROLE=$(terraform output -raw api_role_arn)
-WORKER_ROLE=$(terraform output -raw worker_role_arn)
-CI_ROLE=$(terraform output -raw ci_role_arn)
+sleep 10
+
+export QUEUE_URL=$(terraform output -raw sqs_queue_url)
+export BUCKET=$(terraform output -raw s3_bucket)
+export TABLE=$(terraform output -raw dynamodb_table)
+export TABLE_ARN=$(terraform output -raw dynamodb_table_arn)
+export API_ROLE=$(terraform output -raw api_role_arn)
+export WORKER_ROLE=$(terraform output -raw worker_role_arn)
+export CI_ROLE=$(terraform output -raw ci_role_arn)
 
 aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 266735805454.dkr.ecr.eu-west-2.amazonaws.com
 
+
 sleep 5 
+
 cd ~/pixelforge
 
 docker push 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/api:dev

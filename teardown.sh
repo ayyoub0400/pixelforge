@@ -2,15 +2,10 @@
 pkill -f "kubectl port-forward"
 
 
-kubectl delete -f k8s/autoscaling.yaml
+kubectl delete namespace pixelforge --wait=true
 
-kubectl delete -f k8s/observability/alerts.yaml
-kubectl delete -f k8s/observability/dashboard.yaml
-kubectl delete -f k8s/observability/monitors.yaml
-
-
-helm uninstall monitoring --namespace monitoring
-helm uninstall keda --namespace keda
+helm uninstall kube-prometheus-stack --namespace monitoring --wait
+helm uninstall keda --namespace keda --wait
 
 cd terraform
 

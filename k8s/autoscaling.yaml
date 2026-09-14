@@ -10,7 +10,7 @@ metadata:
 spec:
   podIdentity:
     provider: aws
-    identityOwner: workload 
+    identityOwner: workload
 ---
 
 apiVersion: keda.sh/v1alpha1
@@ -22,7 +22,7 @@ spec:
   scaleTargetRef:
     name: pixelforge-worker #targeting this deployment
   pollingInterval: 10 #poll sqs every 10s
-  cooldownPeriod: 60 #wait a minute before scaling down to 0 replicas
+  cooldownPeriod: 60
   minReplicaCount: 0
   maxReplicaCount: 4
   advanced:
