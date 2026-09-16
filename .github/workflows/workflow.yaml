@@ -1,21 +1,15 @@
-#name of our workflow
 name: ci
 
-#our triggers (pushes to main & PRs)
 on:
   push:
     branches: [main]
 
-#concurrency of workflows
 concurrency:
   group: ci-${{ github.ref }}
-
-  #cancel the older run
   cancel-in-progress: true
 
 permissions:
   contents: read
-
 
 env:
   AWS_REGION: eu-west-2
@@ -37,15 +31,21 @@ jobs:
   #halt on failed terraform validation
   TFValidation:
     runs-on: ubuntu-latest
-    steps:
+    strategy:
+      fail-fast: false
+      matrix:
+        terraform_folder:
+          - terraform/core
+          - terraform/platform
+    steps:`
       - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v4
       - run: terraform fmt -check -recursive
-        working-directory: terraform
+        working-directory: ${{ matrix.terraform_folder }}
       - run: terraform init -backend=false
-        working-directory: terraform
+        working-directory: ${{ matrix.terraform_folder }}
       - run: terraform validate
-        working-directory: terraform
+        working-directory: ${{ matrix.terraform_folder }}
   
   #build and push docker images
   #scanned by trivy for high/crit vulnerabilities 
