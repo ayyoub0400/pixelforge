@@ -21,28 +21,28 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    steps:
+      - uses: action/checkout@v4
+      - uses: hashicorp/setup-terraform@v4
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_CI_TF_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - uses: action/checkout@v4
-    - uses: hashicorp/setup-terraform@v4
-    - uses: aws-actions/configure-aws-credentials@v6
-      with:
-        role-to-assume: ${{ secrets.AWS_CI_TF_ROLE_ARN }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: tf format
+        run: terraform fmt -check
+        continue-on-error: true
 
-    - name: tf format
-      run: terraform fmt -check
-      continue-on-error: true
+      - name: tf init
+        run: terraform init -input=false
 
-    - name: tf init
-      run: terraform init -input=false
+      - name: tf validate
+        run: terraform validate 
 
-    - name: tf validate
-      run: terraform validate 
+      - name: tf plan
+        run: terraform plan
+        continue-on-error: false
 
-    - name: tf plan
-      run: terraform plan
-      continue-on-error: false
-
-    - name: tf apply
-      run: terraform apply
+      - name: tf apply
+        run: terraform apply
 
