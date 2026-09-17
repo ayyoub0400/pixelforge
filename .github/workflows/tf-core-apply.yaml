@@ -37,8 +37,9 @@ jobs:
         run: terraform init -input=false
 
       - name: tf validate
-        run: terraform validate 
- tfApply:
+        run: terraform validate
+
+  tfApply:
     runs-on: ubuntu-latest
     
     needs: tfValidate
