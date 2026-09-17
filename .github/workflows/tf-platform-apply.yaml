@@ -1,0 +1,48 @@
+name: tf-platform-apply
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-west-2
+
+concurrency:
+    group: tf-platform-apply-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+  TFValidation:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: terraform/platform
+
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: action/checkout@v4
+      - uses: hashicorp/setup-terraform@v4
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_CI_TF_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: tf format
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: tf init
+        run: terraform init -input=false
+
+      - name: tf validate
+        run: terraform validate 
+
+      - name: tf plan
+        run: terraform plan
+        continue-on-error: false
+
+      - name: tf apply
+        run: terraform apply
+
