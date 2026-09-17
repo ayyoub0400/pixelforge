@@ -11,13 +11,12 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
-  
-  defaults:
-    run:
-      working-directory: terraform/core
-
   TFValidation:
     runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: terraform/core
 
     permissions:
       contents: read
@@ -41,7 +40,7 @@ jobs:
       run: terraform validate 
 
     - name: tf plan
-      run: tf plan
+      run: terraform plan
       continue-on-error: false
 
     - name: tf apply
