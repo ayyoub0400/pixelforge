@@ -1,0 +1,98 @@
+name: buildandpush
+
+n
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'worker/**'
+  workflow_dispatch:
+
+concurrency:
+  group: buildandpush-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: eu-west-2
+  IMAGE_TAG: ${{ matrix.service }}:${{ github.sha }}
+
+jobs:
+  #halt on failed python tests
+  PyTest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          #cache key
+          cache: pip
+      - run: pip install -r requirements/dev.txt
+      - run: pytest -q  
+  
+  #build and push docker images
+  #scanned by trivy for high/crit vulnerabilities 
+  build:
+    #depends on the above two
+    needs: PyTest
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+    
+    #run both jobs in parallel
+    strategy:
+      matrix:
+        service: [api,worker]
+
+
+    steps:
+      - uses: actions/checkout@v7
+      
+      - name: set up docker action
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build docker images
+        uses: docker/build-push-action@v7
+        with:
+          file: docker/Dockerfile.${{ matrix.service }}
+          tags: ${{ env.IMAGE_TAG }}
+          context: .
+          push: false
+          load: true 
+          cache-from: type=gha, scope=${{ matrix.service }}
+          cache-to: type=gha, scope=${{ matrix.service }},mode=max
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_TAG }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+   
+        #OIDC Exchange
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+        #only authenticating after a pass
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Push to ECR
+        env:
+          REMOTE_IMAGE: "${{ steps.ecr.outputs.registry }}/pixelforge/${{ env.IMAGE_TAG }}"
+        run: |
+          docker tag ${{ env.IMAGE_TAG }} ${{ env.REMOTE_IMAGE }}
+          docker push ${{ env.REMOTE_IMAGE }}
+
+
