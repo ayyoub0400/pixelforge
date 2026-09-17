@@ -1,6 +1,5 @@
 name: buildandpush
 
-n
 on:
   push:
     branches: [main]
