@@ -66,15 +66,15 @@ jobs:
           cache-from: type=gha, scope=${{ matrix.service }}
           cache-to: type=gha, scope=${{ matrix.service }},mode=max
 
-#      - name: Trivy image scan
-#        uses: aquasecurity/trivy-action@v0.36.0
-#        with:
-#          image-ref: ${{ env.IMAGE_TAG }}
-#          format: 'table'
-#          exit-code: '1'
-#          ignore-unfixed: true
-#          vuln-type: 'os,library'
-#          severity: 'HIGH,CRITICAL'
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_TAG }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
    
         #OIDC Exchange
       - uses: aws-actions/configure-aws-credentials@v6
