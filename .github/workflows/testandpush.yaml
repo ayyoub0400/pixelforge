@@ -15,10 +15,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  AWS_REGION: eu-west-2
-  IMAGE_TAG: ${{ matrix.service }}:${{ github.sha }}
-
 jobs:
   #halt on failed python tests
   PyTest:
@@ -49,6 +45,9 @@ jobs:
       matrix:
         service: [api,worker]
 
+    env:
+      AWS_REGION: eu-west-2
+      IMAGE_TAG: ${{ matrix.service }}:${{ github.sha }}
 
     steps:
       - uses: actions/checkout@v7
