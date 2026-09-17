@@ -11,7 +11,7 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
-  TFValidation:
+  tfValidate:
     runs-on: ubuntu-latest
     
     defaults:
@@ -38,11 +38,29 @@ jobs:
 
       - name: tf validate
         run: terraform validate 
+ tfApply:
+    runs-on: ubuntu-latest
+    
+    needs: tfValidate
 
-      - name: tf plan
-        run: terraform plan
-        continue-on-error: false
+    defaults:
+      run:
+        working-directory: terraform/platform
+
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_CI_TF_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: tf init
+        run: terraform init
 
       - name: tf apply
-        run: terraform apply
+        run: terraform apply --auto-approve
 
