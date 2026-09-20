@@ -1,27 +1,17 @@
-name: TF-Core-Apply
+name: TF-Core-Destroy
 
 on:
   workflow_dispatch:
-    inputs:
-      action:
-        description: "apply or plan"
-        required: true
-        default: "plan"
-        type: choice
-        options:
-          - plan
-          - apply
 
 env:
   AWS_REGION: eu-west-2
-  TF_VAR_pixelforge_ci_role: ${{ secrets.AWS_CI_ROLE_ARN }}
 
 concurrency:
-    group: tf-core-apply-${{ github.ref }}
+    group: tf-core-destroy-${{ github.ref }}
     cancel-in-progress: false
 
 jobs:
-  tfDeploy:
+  tfValidate:
     runs-on: ubuntu-latest
     
     defaults:
@@ -31,7 +21,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-
     steps:
       - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v4
@@ -49,10 +38,29 @@ jobs:
 
       - name: tf validate
         run: terraform validate 
+  tfDelete:
+    runs-on: ubuntu-latest
+    
+    needs: tfValidate
 
-      - name: tf plan
-        run: terraform plan -input=false -out=tfplan
+    defaults:
+      run:
+        working-directory: terraform/platform
 
-      - name: tf apply
-        if: ${{ inputs.action == 'apply' }}
-        run: terraform apply -input=false tfplan
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: tf init
+        run: terraform init
+
+      - name: tf destroy
+        run: terraform destroy --auto-approve
+

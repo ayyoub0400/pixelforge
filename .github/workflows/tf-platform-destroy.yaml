@@ -26,7 +26,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v4
       - uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ secrets.AWS_CI_TF_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: tf format
@@ -55,7 +55,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v4
       - uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ secrets.AWS_CI_TF_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: tf init
