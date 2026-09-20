@@ -1,4 +1,4 @@
-name: test-and-push
+name: Pixelforge-CI
 
 on:
   push:
@@ -7,16 +7,20 @@ on:
       - 'api/**'
       - 'worker/**'
   workflow_dispatch:
-
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'worker/**'
+ 
 concurrency:
-  group: buildandpush-${{ github.ref }}
+  group: pixelforge-ci-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  #halt on failed python tests
   PyTest:
     runs-on: ubuntu-latest
     steps:
@@ -29,31 +33,27 @@ jobs:
       - run: pip install -r requirements/dev.txt
       - run: pytest -q  
   
-  #build and push docker images
-  #scanned by trivy for high/crit vulnerabilities 
   build:
-    #depends on the above two
     needs: PyTest
+    
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
       id-token: write
-    
-    #run both jobs in parallel
-    strategy:
-      matrix:
-        service: [api,worker]
-
+        
     env:
       AWS_REGION: eu-west-2
       IMAGE_TAG: ${{ matrix.service }}:${{ github.sha }}
 
+    strategy:
+      matrix:
+        service: [api,worker]
+
     steps:
       - uses: actions/checkout@v7
       
-      - name: set up docker action
-        uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build docker images
         uses: docker/build-push-action@v7
@@ -75,18 +75,25 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
-   
-        #OIDC Exchange
-      - uses: aws-actions/configure-aws-credentials@v6
+
+
+      #Only on Pushes to Main 
+
+      - name: OIDC Exchange
+        if: github.event_name != 'pull_request'
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-        #only authenticating after a pass
-      - id: ecr
+      - name: ECR Auth
+        id: ecr 
+        if: github.event_name != 'pull_request'
         uses: aws-actions/amazon-ecr-login@v2
       
-      - name: Push to ECR
+
+      - name: Image push to ECR 
+        if: github.event_name != 'pull_request'
         env:
           REMOTE_IMAGE: "${{ steps.ecr.outputs.registry }}/pixelforge/${{ env.IMAGE_TAG }}"
         run: |
