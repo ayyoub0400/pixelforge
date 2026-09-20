@@ -1,4 +1,4 @@
-name: tf-core-apply
+name: TF-Core-Apply
 
 on:
   workflow_dispatch:

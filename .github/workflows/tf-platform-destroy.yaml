@@ -1,4 +1,4 @@
-name: tf-platform-destroy
+name: TF-Platform-Destroy
 
 on:
   workflow_dispatch:

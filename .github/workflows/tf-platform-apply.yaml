@@ -1,4 +1,4 @@
-name: tf-platform-apply
+name: TF-Platform-Apply
 
 on:
   workflow_dispatch:
