@@ -45,7 +45,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: terraform/core`:
+        working-directory: terraform/core
 
     permissions:
       contents: read
