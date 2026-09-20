@@ -1,4 +1,4 @@
-name: TF-Platform-Apply
+name: TF-Core-Deployment
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ env:
   TF_VAR_pixelforge_ci_role: ${{ secrets.AWS_CI_ROLE_ARN }}
 
 concurrency:
-    group: tf-platform-apply-${{ github.ref }}
+    group: tf-core-apply-${{ github.ref }}
     cancel-in-progress: false
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: terraform/platform
+        working-directory: terraform/core
 
     permissions:
       contents: read
