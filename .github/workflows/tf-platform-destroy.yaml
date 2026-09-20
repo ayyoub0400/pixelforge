@@ -1,0 +1,66 @@
+name: tf-platform-destroy
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-west-2
+
+concurrency:
+    group: tf-platform-destroy-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+  tfValidate:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: terraform/platform
+
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_CI_TF_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: tf format
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: tf init
+        run: terraform init -input=false
+
+      - name: tf validate
+        run: terraform validate 
+  tfDelete:
+    runs-on: ubuntu-latest
+    
+    needs: tfValidate
+
+    defaults:
+      run:
+        working-directory: terraform/platform
+
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_CI_TF_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: tf init
+        run: terraform init
+
+      - name: tf destroy
+        run: terraform destroy --auto-approve
+
