@@ -89,15 +89,15 @@ resource "aws_eks_addon" "metrics_server" {
 resource "aws_eks_access_entry" "self" {
   cluster_name = aws_eks_cluster.this.name
   #runner
-  principal_arn = data.aws_caller_identity.current.arn
+  principal_arn = var.pixelforge_ci_role_arn
 
 }
 
-#granting eksadminrole to principal
+#granting eksclusteradmin to principal
 resource "aws_eks_access_policy_association" "self_admin" {
 
   cluster_name  = aws_eks_cluster.this.name
-  principal_arn = data.aws_caller_identity.current.arn
+  principal_arn = var.pixelforge_ci_role_arn
   #the policy
   policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
 

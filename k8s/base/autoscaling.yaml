@@ -7,10 +7,12 @@ kind: TriggerAuthentication
 metadata:
   name: worker-aws-identity
   namespace: pixelforge
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   podIdentity:
     provider: aws
-    identityOwner: workload
+    identityOwner: workload #taking the worker's role
 ---
 
 apiVersion: keda.sh/v1alpha1

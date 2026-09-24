@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: pixelforge-config
   namespace: pixelforge
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 data:
   AWS_REGION: "eu-west-2"
   S3_BUCKET: "pixelforge-dev-media-266735805454"
