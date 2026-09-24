@@ -6,12 +6,18 @@ on:
     paths:
       - 'api/**'
       - 'worker/**'
+      - 'shared/**'
+      - 'docker/**'
+      - '.github/workflows/pixelforge-ci.yaml'
   workflow_dispatch:
   pull_request:
     branches: [main]
     paths:
       - 'api/**'
       - 'worker/**'
+      - 'shared/**'
+      - 'docker/**'
+      - '.github/workflows/pixelforge-ci.yaml'
  
 concurrency:
   group: pixelforge-ci-${{ github.ref }}
@@ -76,7 +82,6 @@ jobs:
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
 
-
       #Only on Pushes to Main 
 
       - name: OIDC Exchange
@@ -100,4 +105,53 @@ jobs:
           docker tag ${{ env.IMAGE_TAG }} ${{ env.REMOTE_IMAGE }}
           docker push ${{ env.REMOTE_IMAGE }}
 
+  promote-image:
+    needs: build
+    if: github.event_name != 'pull_request' #only on merges
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write #to replace kustomization's image tag
+      id-token: write
+
+    env:
+      AWS_REGION: eu-west-2
+      API_REPOSITORY: pixelforge/api
+      WORKER_REPOSITORY: pixelforge/worker
+
+
+    steps:
+
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+ 
+      - name: OIDC Exchange
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: changing image tag in dev overlay
+        working-directory: k8s/overlays/dev
+        #ai regex help
+        run: |
+
+          # replace current to_be_replaced placeholder or in-use sha
+          test "$(grep -Ec '^[[:space:]]+newTag: )(to_be_replaced|[0-9a-f]{40}) -eq 2 kustomization.yaml)" -eq 2
+          # Replace either starting value; leave both ECR repository names intact.
+          sed -i -E "s/^([[:space:]]+newTag: )(to_be_replaced|[0-9a-f]{40})$/\1${GITHUB_SHA}/" kustomization.yaml
+          # Fail the job if either tag did not become this tested commit SHA.
+          test "$(grep -Ec "^[[:space:]]+newTag: ${GITHUB_SHA}$" kustomization.yaml)" -eq 2
+
+
+      - name: commit our above changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add k8s/overlays/dev/kustomization.yaml
+          git diff --cached --quiet && exit 0 #exit if no changes made 
+          git commit -m "Image tag -${GITHUB_SHA} promoted to dev"
+          git push origin HEAD:main
 
