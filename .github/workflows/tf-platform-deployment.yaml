@@ -110,7 +110,7 @@ jobs:
             --wait \
             --timeout 5m
 
-     - name: update keda prom
+      - name: update keda prom
         if: ${{ inputs.action == 'apply' }}
         working-directory: ${{ github.workspace }}
         run: |
@@ -126,5 +126,4 @@ jobs:
       - name: deploy with argocd 
         if: ${{ inputs.action == 'apply' }}
         working-directory: ${{ github.workspace }}
-        run: |
-          kubectl apply -f argocd/pixelforge-application.yaml
+        run: kubectl apply -f argocd/pixelforge-application.yaml
