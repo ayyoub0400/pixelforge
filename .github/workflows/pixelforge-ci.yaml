@@ -137,12 +137,8 @@ jobs:
         working-directory: k8s/overlays/dev
         #ai regex help
         run: |
-
-          # replace current to_be_replaced placeholder or in-use sha
           test "$(grep -Ec '^[[:space:]]+newTag: (to_be_replaced|[0-9a-f]{40}) -eq 2 kustomization.yaml)" -eq 2
-          # Replace either starting value; leave both ECR repository names intact.
           sed -i -E "s/^([[:space:]]+newTag: )(to_be_replaced|[0-9a-f]{40})$/\1${GITHUB_SHA}/" kustomization.yaml
-          # Fail the job if either tag did not become this tested commit SHA.
           test "$(grep -Ec "^[[:space:]]+newTag: ${GITHUB_SHA}$" kustomization.yaml)" -eq 2
 
 
