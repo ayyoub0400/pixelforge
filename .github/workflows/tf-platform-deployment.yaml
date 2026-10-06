@@ -66,6 +66,7 @@ jobs:
         run: |
           EKS_CLUSTER_NAME="$(terraform output -raw eks_cluster_name)"
           aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
+          kubectl create namespace pixelforge
           kubectl auth can-i get pods --all-namespaces
 
       - name: install keda into cluster
