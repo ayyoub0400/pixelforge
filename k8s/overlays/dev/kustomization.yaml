@@ -12,10 +12,10 @@ images:
   - name: pixelforge-api 
     #new image (repo + tag)
     newName: 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/api
-    newTag: to_be_replaced
+    newTag: e3fcb944c4bf403a765e214ea17ba57f6c547618
 
   - name: pixelforge-worker 
     #new image (repo + tag)
     newName: 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/worker
-    newTag: to_be_replaced
+    newTag: e3fcb944c4bf403a765e214ea17ba57f6c547618
     
