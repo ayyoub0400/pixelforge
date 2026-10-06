@@ -38,3 +38,7 @@ output "worker_role_arn" {
   value       = aws_iam_role.worker.arn
 }
 
+output "eks_cluster_name" {
+  description = "pass to CI for cluster config"
+  value = aws_eks_cluster.this.name
+}

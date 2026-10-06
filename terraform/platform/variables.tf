@@ -15,7 +15,11 @@ variable "environment" {
   default = "dev"
 }
 
+variable "pixelforge_ci_role" {
+  type = string
+  sensitive = true
 
+}
 
 
 

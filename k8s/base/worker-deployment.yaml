@@ -1,21 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pixelforge-api
+  name: pixelforge-worker
   namespace: pixelforge
+
 spec:
-  replicas: 1
   selector:
     matchLabels:
-      app: pixelforge-api
+      app: pixelforge-worker
   template:
     metadata:
       labels:
-        app: pixelforge-api
+        app: pixelforge-worker
     spec:
+      #allow for pod to recognise sigterm and complete job before sigkill
+      #20s poll + 35s for job completion
+      terminationGracePeriodSeconds: 55 
       
-      terminationGracePeriodSeconds: 35
-      serviceAccountName: api
+      serviceAccountName: worker
 
       securityContext:
         runAsUser: 10001
@@ -25,15 +27,16 @@ spec:
 
 
       containers:
-        - name: api
-          image: 266735805454.dkr.ecr.eu-west-2.amazonaws.com/pixelforge/api:dev
+        - name: worker
+          image: pixelforge-worker
           
           #when to pull images - only if not available locally 
           imagePullPolicy: IfNotPresent
 
+          #for observability/monitoring - metrics = 9090
           ports:
-            - name: http
-              containerPort: 8000
+            - name: metrics
+              containerPort: 9090
 
           envFrom:
             #environment variables
@@ -61,37 +64,11 @@ spec:
 
           livenessProbe:
             httpGet: #send get requests to healthz
-              path: /healthz
-              port: 8000
+              path: /metrics
+              port: metrics
             initialDelaySeconds: 10 #allow pod to start
             periodSeconds: 20 #20 sec intervals
-
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            failureThreshold: 3
 
       volumes:
         - name: tmp
           emptyDir: {}
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: pixelforge-api
-  namespace: pixelforge
-  #for service monitor to select this service
-  labels:
-    app: pixelforge-api
-spec:
-  selector:
-    app: pixelforge-api
-  #http = 80 > 8000
-  ports:
-    - name: http
-      port: 80 #exposing port 80 on service
-      targetPort: http #on pod

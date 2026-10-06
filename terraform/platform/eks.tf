@@ -86,18 +86,18 @@ resource "aws_eks_addon" "metrics_server" {
 
 
 #specifying access to cluster
-resource "aws_eks_access_entry" "self" {
+resource "aws_eks_access_entry" "ci" {
   cluster_name = aws_eks_cluster.this.name
   #runner
-  principal_arn = data.aws_caller_identity.current.arn
+  principal_arn = var.pixelforge_ci_role
 
 }
 
-#granting eksadminrole to principal
-resource "aws_eks_access_policy_association" "self_admin" {
+#granting clusteradmin rights to our ci role for this cluster
+resource "aws_eks_access_policy_association" "ci_admin" {
 
   cluster_name  = aws_eks_cluster.this.name
-  principal_arn = data.aws_caller_identity.current.arn
+  principal_arn = var.pixelforge_ci_role
   #the policy
   policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
 
@@ -105,6 +105,8 @@ resource "aws_eks_access_policy_association" "self_admin" {
     type = "cluster"
   }
 
+  depends_on=["aws_eks_access_entry.ci"]
+  
 }
 
 

@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1 #argocd crd
+kind: Application
+metadata:
+  name: pixelforge-dev
+  namespace: pixelforge
+  #ensure proper cleanup
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ayyoub0400/pixelforge.git    
+    targetRevision: main
+    path: k8s/overlay/dev #path to kustomization.yaml
+  destination:
+    server: https://kubernetes.default.svc #same cluster as argocd
+    namespace: pixelforge
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+  syncOptions:
+    - CreateNamespace=true
+  retry:
+    limit: 5
+    backoff:
+      duration: 5s
+      factor: 2
+      maxDuration: 3m
