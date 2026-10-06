@@ -71,7 +71,7 @@ jobs:
       - name: install keda into cluster
         if: ${{ inputs.action == 'apply' }}
         run: |
-          WORKER_ROLE = "$(terraform output -raw worker_role_arn)"
+          WORKER_ROLE="$(terraform output -raw worker_role_arn)"
           helm repo add kedacore https://kedacore.github.io/charts --force-update
           helm repo update
 
