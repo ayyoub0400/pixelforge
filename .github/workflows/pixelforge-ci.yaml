@@ -137,11 +137,11 @@ jobs:
         working-directory: k8s/overlays/dev
         #ai regex help
         run: |
-          test "$(grep -Ec '^[[:space:]]+newTag: (to_be_replaced|[0-9a-f]{40}) -eq 2 kustomization.yaml)" -eq 2
+          matches=$(grep -Ec '^[[:space:]]+newTag: (to_be_replaced|[0-9a-f]{40})$' kustomization.yaml || true)
+          test "$matches" -eq 2
           sed -i -E "s/^([[:space:]]+newTag: )(to_be_replaced|[0-9a-f]{40})$/\1${GITHUB_SHA}/" kustomization.yaml
-          test "$(grep -Ec "^[[:space:]]+newTag: ${GITHUB_SHA}$" kustomization.yaml)" -eq 2
-
-
+          matches=$(grep -Ec "^[[:space:]]+newTag: ${GITHUB_SHA}$" kustomization.yaml || true)
+          test "$matches" -eq 2
       - name: commit our above changes
         run: |
           git config user.name "github-actions[bot]"
