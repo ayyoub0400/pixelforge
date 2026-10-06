@@ -8,3 +8,6 @@ resources:
   - worker-deployment.yaml
   - api-hpa.yaml
   - autoscaling.yaml
+  - alerts.yaml
+  - dashboards.yaml
+  - monitors.yaml

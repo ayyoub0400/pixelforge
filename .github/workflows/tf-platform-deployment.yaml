@@ -56,3 +56,63 @@ jobs:
       - name: tf apply
         if: ${{ inputs.action == 'apply' }}
         run: terraform apply -input=false tfplan
+
+      - name: helm install
+        if : ${{ inputs.action == 'apply' }}
+        uses: azure/setup-helm@v5
+
+      - name: connect to eks
+        if: ${{ inputs.action == 'apply' }}
+        run: |
+          EKS_CLUSTER_NAME = "$(terraform output -raw eks_cluster_name)"
+          aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
+          kubectl auth can-i get pods --all-namespaces
+
+      - name: install keda into cluster
+        if: ${{ inputs.action == 'apply' }}
+        run: |
+          WORKER_ROLE = "$(terraform output -raw worker_role_arn)"
+          helm repo add kedacore https://kedacore.github.io/charts --force-update
+          helm repo update
+
+          helm upgrade --install keda kedacore/keda \
+            --namespace keda \
+            --create-namespace \
+            --set prometheus.operator.enabled=true \
+            --wait \
+            --timeout 5m \
+            --set-string podIdentity.aws.irsa.enabled=true \
+            --set-string podIdentity.aws.irsa.roleArn="${WORKER_ROLE}" \
+            --set-string podIdentity.aws.irsa.stsRegionalEndpoints=true
+      
+      - name: install argo into cluster
+        if: ${{ inputs.action == 'apply' }}
+        run: |
+          helm repo add argo https://argoproj.github.io/argo-helm --force-update
+          helm repo update
+          helm upgrade --install argocd argo/argo-cd \
+            --namespace argocd \
+            --create-namespace \
+            --wait \
+            --timeout 5m 
+
+      - name: install prom into cluster
+        if: ${{ inputs.action == 'apply' }}
+        working-directory: ${{ github.workspace }}
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            --create-namespace \
+            --version 88.5.4 \
+            --values k8s/base/monitoring-values.yaml \
+            --wait \
+            --timeout 5m
+
+      
+      - name: deploy with argocd 
+        if: ${{ inputs.action == 'apply' }}
+        working-directory: ${{ github.workspace }}
+        run: |
+          kubectl apply -f argocd/pixelforge-application.yaml
