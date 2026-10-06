@@ -110,7 +110,19 @@ jobs:
             --wait \
             --timeout 5m
 
-      
+     - name: update keda prom
+        if: ${{ inputs.action == 'apply' }}
+        working-directory: ${{ github.workspace }}
+        run: |
+          helm upgrade keda kedacore/keda \
+            --namespace keda \
+            --version 2.20.2 \
+            --reuse-values \
+            --set prometheus.operator.serviceMonitor.enabled=true \
+            --set prometheus.operator.serviceMonitor.additionalLabels.release=monitoring \
+            --wait \
+            --timeout 5m
+
       - name: deploy with argocd 
         if: ${{ inputs.action == 'apply' }}
         working-directory: ${{ github.workspace }}
