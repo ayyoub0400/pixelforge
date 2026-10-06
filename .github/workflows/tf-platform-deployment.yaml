@@ -64,7 +64,7 @@ jobs:
       - name: connect to eks
         if: ${{ inputs.action == 'apply' }}
         run: |
-          EKS_CLUSTER_NAME = "$(terraform output -raw eks_cluster_name)"
+          EKS_CLUSTER_NAME="$(terraform output -raw eks_cluster_name)"
           aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
           kubectl auth can-i get pods --all-namespaces
 
