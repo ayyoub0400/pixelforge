@@ -63,11 +63,8 @@ jobs:
 
       - name: Destroy sequence
         run: |
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $(terraform output -raw eks_cluster_name) 
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $(terraform output -raw eks_cluster_naime) 
           kubectl delete namespace pixelforge --wait=true
-          helm uninstall kube-prometheus-stack --namespace monitoring --wait
-          helm uninstall keda --namespace keda --wait
-          helm uninstall argocd --namespace argocd --wait
           terraform destroy --auto-approve
           terraform state list
 
