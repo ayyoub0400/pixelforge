@@ -5,7 +5,7 @@ on:
 
 env:
   AWS_REGION: eu-west-2
-
+  TF_VAR_pixelforge_ci_role: ${{ secrets.AWS_CI_ROLE_ARN }}
 concurrency:
     group: tf-platform-destroy-${{ github.ref }}
     cancel-in-progress: false
@@ -64,8 +64,8 @@ jobs:
       - name: Destroy sequence
         run: |
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $(terraform output -raw eks_cluster_name) 
-          kubectl delete namespace pixelforge --wait=true
-          terraform destroy --auto-approve
+          kubectl delete namespace pixelforge --wait=true --ignore-not-found=true
+          terraform destroy -input=false -auto-approve
           terraform state list
 
 
