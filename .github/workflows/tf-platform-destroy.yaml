@@ -63,7 +63,7 @@ jobs:
 
       - name: Destroy sequence
         run: |
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $(terraform output -raw eks_cluster_naime) 
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $(terraform output -raw eks_cluster_name) 
           kubectl delete namespace pixelforge --wait=true
           terraform destroy --auto-approve
           terraform state list
