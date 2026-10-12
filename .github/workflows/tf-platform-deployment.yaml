@@ -76,7 +76,7 @@ jobs:
           ROLE_ARN="$(terraform output -raw lbc_role_arn)"
 
           helm repo add eks https://aws.github.io/eks-charts --force-update
-          help repo update eks
+          helm repo update eks
 
           helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
             --namespace kube-system \
