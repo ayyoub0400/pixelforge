@@ -74,6 +74,7 @@ jobs:
         run: |
           VPC_ID="$(terraform output -raw vpc_id)"
           ROLE_ARN="$(terraform output -raw lbc_role_arn)"
+          EKS_CLUSTER_NAME="$(terraform output -raw eks_cluster_name)"
 
           helm repo add eks https://aws.github.io/eks-charts --force-update
           helm repo update eks
