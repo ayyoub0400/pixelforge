@@ -72,7 +72,7 @@ jobs:
       - name: install load balancer controller
         if: ${{ inputs.action == 'apply' }}
         run: |
-          VPC_ID="$(terraform output -raw vpc_id)
+          VPC_ID="$(terraform output -raw vpc_id)"
           ROLE_ARN="$(terraform output -raw lbc_role_arn)"
 
           helm repo add eks https://aws.github.io/eks-charts --force-update
