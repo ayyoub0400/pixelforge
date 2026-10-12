@@ -132,7 +132,17 @@ data "aws_iam_policy_document" "worker" {
   }
 }
 
+resource "aws_iam_policy" "lbc" {
+  name   = "${var.project_name}-${var.environment}-lbc-policy"
+  policy = file("${path.module}/policies/lbs-iam-policy.json")
+}
 
+resource "aws_iam_role" "lbc" {
+
+  name               = "${var.project_name}-${var.environment}-lbc-role"
+  assume_role_policy = data.aws_iam_policy_document.assume_from_cluster_lbc.json
+
+}
 
 resource "aws_iam_role" "api" {
 
@@ -166,4 +176,9 @@ resource "aws_iam_role_policy" "worker" {
 
 }
 
+resource "aws_iam_role_policy_attachment" "lbc" {
 
+  role       = aws_iam_role.lbc.name
+  policy_arn = aws_iam_policy.lbc.arn
+
+}

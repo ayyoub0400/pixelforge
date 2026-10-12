@@ -16,7 +16,7 @@ variable "environment" {
 }
 
 variable "pixelforge_ci_role" {
-  type = string
+  type      = string
   sensitive = true
 
 }

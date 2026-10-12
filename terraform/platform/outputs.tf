@@ -40,5 +40,19 @@ output "worker_role_arn" {
 
 output "eks_cluster_name" {
   description = "pass to CI for cluster config"
-  value = aws_eks_cluster.this.name
+  value       = aws_eks_cluster.this.name
+}
+
+output "lbc_role_arn" {
+
+  description = "arn of lbc role for lbc to assume"
+  value       = aws_iam_role.lbc.arn
+
+}
+
+output "vpc_id" {
+
+  description = "vpc id for lbc helm chart"
+  value       = module.vpc.vpc_id
+
 }

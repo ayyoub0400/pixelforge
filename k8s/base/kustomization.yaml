@@ -9,5 +9,6 @@ resources:
   - api-hpa.yaml
   - autoscaling.yaml
   - alerts.yaml
+  - api-ingress.yaml
   - dashboard.yaml
   - monitors.yaml

@@ -105,8 +105,8 @@ resource "aws_eks_access_policy_association" "ci_admin" {
     type = "cluster"
   }
 
-  depends_on=["aws_eks_access_entry.ci"]
-  
+  depends_on = ["aws_eks_access_entry.ci"]
+
 }
 
 #specifying access to cluster
@@ -114,7 +114,7 @@ resource "aws_eks_access_entry" "human" {
   cluster_name = aws_eks_cluster.this.name
   #runner
   principal_arn = "arn:aws:iam::266735805454:user/neymarjr10"
-  type="STANDARD"
+  type          = "STANDARD"
 }
 
 #granting clusteradmin rights to our ci role for this cluster
@@ -129,8 +129,8 @@ resource "aws_eks_access_policy_association" "human_admin" {
     type = "cluster"
   }
 
-  depends_on=["aws_eks_access_entry.human"]
-  
+  depends_on = ["aws_eks_access_entry.human"]
+
 }
 
 

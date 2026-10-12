@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pixelforge-api
+  namespace: pixelforge
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/certificate-arn: 'arn:aws:acm:eu-west-2:266735805454:certificate/efec372f-1442-4129-a677-36ef4c6e7f87'
+spec:
+  ingressClassName: alb
+  rules:
+    - host: api.ekspixelforge.online
+      http:
+        paths:
+          - path: /
+            pathType: prefix
+            backend: 
+              service:
+                name: pixelforge-api
+                port:
+                  number: 80
+
