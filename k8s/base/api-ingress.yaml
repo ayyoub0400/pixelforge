@@ -9,7 +9,7 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-path: /healthz
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
     alb.ingress.kubernetes.io/ssl-redirect: '443'
-    alb.ingress.kubernetes.io/certificate-arn: 'arn:aws:acm:eu-west-2:266735805454:certificate/efec372f-1442-4129-a677-36ef4c6e7f87'
+    alb.ingress.kubernetes.io/certificate-arn: 'arn:aws:acm:eu-west-2:266735805454:certificate/ca96eb60-be0a-4471-afdc-d62e7fab42b5'
 spec:
   ingressClassName: alb
   rules:
@@ -17,7 +17,7 @@ spec:
       http:
         paths:
           - path: /
-            pathType: prefix
+            pathType: Prefix
             backend: 
               service:
                 name: pixelforge-api
