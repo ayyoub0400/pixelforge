@@ -2,9 +2,9 @@
 
 ## Purpose and ownership
 
-This is my in-progress DevOps/platform capstone. Claude AI generated the Python application and its supporting application scaffold so I could focus on infrastructure and delivery engineering. I am building the AWS Terraform configuration, IAM/OIDC integration, CI workflow and Kubernetes deployment layer around it.
+This is my completed DevOps/platform project. Claude AI generated the Python application and its supporting application scaffold so I could focus on infrastructure and delivery engineering. I have built the AWS Terraform configuration, IAM/OIDC integration, CI workflow and Kubernetes deployment layer around it.
 
-This is an independent learning environment, not a service for external users. The AWS deployment is not currently live. Application features and bundled test results below are not claims of personally authored Python software or commercial production experience.
+This is an independent learning environment, not a service for external users. Application features and bundled test results below are not claims of personally authored Python software or commercial production experience.
 
 Asynchronous image processing. Upload an image, get a job id back immediately,
 and collect three thumbnails plus EXIF metadata when the worker has finished.
